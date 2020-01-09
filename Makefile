@@ -1,4 +1,4 @@
-PROJECT_ROOT    := github.com/seizadi/template-engine
+PROJECT_ROOT    := github.com/seizadi/cmdb-config
 BUILD_PATH      := bin
 DOCKERFILE_PATH := $(CURDIR)/docker
 
@@ -11,7 +11,7 @@ IMAGE_REGISTRY ?= soheileizadi
 # configuration for server binary and image
 SERVER_BINARY     := $(BUILD_PATH)/server
 SERVER_PATH       := $(PROJECT_ROOT)/cmd/server
-SERVER_IMAGE      := $(IMAGE_REGISTRY)/template-engine
+SERVER_IMAGE      := $(IMAGE_REGISTRY)/cmdb-config
 SERVER_DOCKERFILE := $(DOCKERFILE_PATH)/Dockerfile
 # Placeholder. modify as defined conventions.
 DB_VERSION        := 3
@@ -43,27 +43,6 @@ fmt:
 test: fmt
 	@go test $(GO_TEST_FLAGS) $(GO_PACKAGES)
 
-.PHONY: vendor
-vendor:
-	@dep ensure -vendor-only
-
-.PHONY: vendor-update
-vendor-update:
-	@dep ensure
-
 .PHONY: build
 build:
-	@go build -o bin/template-engine ./cmd/template-engine/*.go
-
-.PHONY: protobuf
-protobuf:
-	@mkdir -p pkg/pb
-	@curl https://raw.githubusercontent.com/seizadi/cmdb/master/pkg/pb/cmdb.proto > pkg/pb/cmdb.proto
-	$(GENERATOR) \
-	--go_out=plugins=grpc:. \
-	--grpc-gateway_out=logtostderr=true:. \
-	--gorm_out="engine=postgres:." \
-	--swagger_out="atlas_patch=true:." \
-	--atlas-query-validate_out=. \
-	--atlas-validate_out="." \
-	--validate_out="lang=go:." 	$(PROJECT_ROOT)/pkg/pb/cmdb.proto
+	@go build -o bin/cmdb-config ./cmd/cmdb-config/*.go

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	
-	"github.com/codegangsta/cli"
-	"github.com/seizadi/template-engine/cmd/template-engine/commands"
+
+	"github.com/seizadi/cmdb-config/cmd/cmdb-config/commands"
+	"github.com/urfave/cli"
 )
 
 const version = "0.1"
@@ -48,18 +48,17 @@ func main() {
 			Usage: "enable debug logging",
 		},
 	}
-	
+
 	app.Before = func(c *cli.Context) error {
 		return nil
 	}
 	app.Commands = commands.Commands
 	app.CommandNotFound = cmdNotFound
-	
+
 	if err := app.Run(os.Args); err != nil {
 		log.Fatalf("%v", err)
 	}
 }
-
 
 func cmdNotFound(c *cli.Context, command string) {
 	fmt.Printf(

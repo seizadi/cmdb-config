@@ -1,37 +1,37 @@
 package util
 
 import (
-	"os"
 	"gopkg.in/yaml.v2"
+	"os"
 )
 
 func PutText(txt string, DestFilename string) error {
-	
+
 	out := []byte(txt)
-	
+
 	err := CopyBufferContents(out, DestFilename)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 func PutMap(addr interface{}, DestFilename string) error {
-	
+
 	out, err := yaml.Marshal(addr)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	err = CopyBufferContents(out, DestFilename)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -40,7 +40,7 @@ func PutMap(addr interface{}, DestFilename string) error {
 // destination file exists, all it's contents will be replaced by the contents
 // of the source buffer.
 func CopyBufferContents(srcBuff []byte, destFile string) (err error) {
-	
+
 	out, err := os.Create(destFile)
 	if err != nil {
 		return

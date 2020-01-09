@@ -1,8 +1,6 @@
-# Template Engine
+# CMDB Config
 
-Project that can be run as command line on Jenkins or Spinnaker
-pipeline. It will use a CMDB as source of truth and for an
-Environment it will create resolved manifests that can be deployed
-in a Spinnaker pipeline.
-
+Project that can be run as command line to seed the CMDB.
+It will use a Git Repo as source and tranfer to CMDB as source of truth 
+so that we can transition.
 
