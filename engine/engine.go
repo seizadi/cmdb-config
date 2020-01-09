@@ -1,5 +1,12 @@
 package engine
 
+import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+)
+
 func ConfigCmdb( host string, apiKey string, repo string) error {
 	basePath := "./tmp"
 	destPath := basePath + "/repo"
@@ -27,11 +34,24 @@ func ConfigCmdb( host string, apiKey string, repo string) error {
 	//
 	
 	
-	var region RegionConfig;
-	err := parseRegion(destPath, &region)
+	var region os.FileInfo
+	files, err := ioutil.ReadDir(destPath)
+	for _, f := range files {
+		if (f.Name() == "envs") {
+			region = f
+			break
+		}
+	}
+	
+	if len(region.Name()) <= 0 {
+		return errors.New("Error Region folder " + destPath + "/envs not found")
+	}
+	levels := []int {1,2,3}
+	tierConfig, err := parseTier(region, destPath + "/envs", levels)
 	if err != nil {
 		return err
 	}
+	fmt.Println(tierConfig.Name)
 	
 	//// Create CloudProvider and Region to anchore deployment
 	//cloud := pb.CloudProvider{Name: "AWS", Account: "141960", Provider: pb.Provider_AWS}
