@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 )
 
 type AppConfig struct {
@@ -74,6 +75,17 @@ func parseAppFiles (file os.FileInfo, filePath string, appConfigs []AppConfig) (
 		split := reg.Split(file.Name(), -1)
 		appC.Name = split[0]
 		appC.ChartFile = filePath
+		content, err := ioutil.ReadFile(appC.ChartFile)
+		if err !=nil {
+			return appConfigs, err
+		}
+		chartStr := strings.TrimSpace(string(content))
+		appC.Chart = chartStr
+		if (chartStr == "dnd") {
+			appC.Enable = false
+		} else {
+			appC.Enable = true
+		}
 	}
 	// Need to parse appCatalogConfigs and see if there is an entry already here.
 	for i, a := range appConfigs {
@@ -82,7 +94,9 @@ func parseAppFiles (file os.FileInfo, filePath string, appConfigs []AppConfig) (
 			if len(appC.ValueFile) > 0 {
 				appConfigs[i].ValueFile = appC.ValueFile
 			} else if len(appC.ChartFile) > 0 {
+				appConfigs[i].Enable = appC.Enable
 				appConfigs[i].ChartFile = appC.ChartFile
+				appConfigs[i].Chart = appC.Chart
 			}
 			break
 		}
