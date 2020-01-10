@@ -17,48 +17,48 @@ type AppConfig struct {
 	Value     interface{}
 }
 
-type TierConfig struct {
+type LifecycleConfig struct {
 	Name        string
 	AppConfigs  []AppConfig
 	ValueFile   string
 	Value       interface{}
-	TierConfigs []TierConfig
+	LifecycleConfigs []LifecycleConfig
 }
 
-func parseTier(tier os.FileInfo, tierPath string, levels []int) (TierConfig, error) {
-	tierLevel := levels[1:]
-	var tierConfig TierConfig
-	tierConfig.Name = tier.Name()
+func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string, levels []int) (LifecycleConfig, error) {
+	lifecycleLevel := levels[1:]
+	var lifecycleConfig LifecycleConfig
+	lifecycleConfig.Name = lifecycle.Name()
 	// Look deeper into Stage ....
-	files, err := ioutil.ReadDir(tierPath)
+	files, err := ioutil.ReadDir(lifecyclePath)
 	if err != nil {
-		return tierConfig, err
+		return lifecycleConfig, err
 	}
 	
 	for _, file := range files {
-		filePath := tierPath + "/" + file.Name()
-		if len(tierLevel) > 0 && file.IsDir() {
-			tier, err := parseTier(file, filePath, tierLevel)
+		filePath := lifecyclePath + "/" + file.Name()
+		if len(lifecycleLevel) > 0 && file.IsDir() {
+			lifecycle, err := parseLifecycle(file, filePath, lifecycleLevel)
 			if err != nil {
-				return tierConfig, err
+				return lifecycleConfig, err
 			}
-			tierConfig.TierConfigs = append(tierConfig.TierConfigs, tier)
+			lifecycleConfig.LifecycleConfigs = append(lifecycleConfig.LifecycleConfigs, lifecycle)
 		} else {
 			ext := path.Ext(file.Name())
 			if ext == ".yaml" {
 				if file.Name() == "values.yaml" {
-					tierConfig.ValueFile = filePath
+					lifecycleConfig.ValueFile = filePath
 					continue
 				}
 			}
-			tierConfig.AppConfigs, err = parseAppFiles(file, filePath, tierConfig.AppConfigs)
+			lifecycleConfig.AppConfigs, err = parseAppFiles(file, filePath, lifecycleConfig.AppConfigs)
 			if err != nil {
-				return tierConfig, err
+				return lifecycleConfig, err
 			}
 		}
 	}
 	
-	return tierConfig, nil
+	return lifecycleConfig, nil
 }
 
 func parseAppFiles (file os.FileInfo, filePath string, appConfigs []AppConfig) ([]AppConfig, error) {

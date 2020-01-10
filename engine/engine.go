@@ -34,24 +34,24 @@ func ConfigCmdb( host string, apiKey string, repo string) error {
 	//
 	
 	
-	var region os.FileInfo
+	var lifecycle os.FileInfo
 	files, err := ioutil.ReadDir(destPath)
 	for _, f := range files {
 		if (f.Name() == "envs") {
-			region = f
+			lifecycle = f
 			break
 		}
 	}
 	
-	if len(region.Name()) <= 0 {
+	if len(lifecycle.Name()) <= 0 {
 		return errors.New("Error Region folder " + destPath + "/envs not found")
 	}
 	levels := []int {1,2,3}
-	tierConfig, err := parseTier(region, destPath + "/envs", levels)
+	lifecycleConfig, err := parseLifecycle(lifecycle, destPath + "/envs", levels)
 	if err != nil {
 		return err
 	}
-	fmt.Println(tierConfig.Name)
+	fmt.Println(lifecycleConfig.Name)
 	
 	//// Create CloudProvider and Region to anchore deployment
 	//cloud := pb.CloudProvider{Name: "AWS", Account: "141960", Provider: pb.Provider_AWS}
