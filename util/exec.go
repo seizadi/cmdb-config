@@ -14,12 +14,12 @@ func CmdExec(cmd string, path string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	err = CopyBufferContents(out.Bytes(), path)
 	if err != nil {
 		return err
 	}
-	
+
 	out.Reset()
 	exec_cmd := exec.Command("bash", path)
 	exec_cmd.Stdout = &out
@@ -27,6 +27,6 @@ func CmdExec(cmd string, path string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }

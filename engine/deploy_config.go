@@ -18,15 +18,14 @@ type AppConfig struct {
 }
 
 type LifecycleConfig struct {
-	Name        string
-	AppConfigs  []AppConfig
-	ValueFile   string
-	Value       interface{}
+	Name             string
+	AppConfigs       []AppConfig
+	ValueFile        string
+	Value            interface{}
 	LifecycleConfigs []LifecycleConfig
 }
 
-func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string, levels []int) (LifecycleConfig, error) {
-	lifecycleLevel := levels[1:]
+func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string) (LifecycleConfig, error) {
 	var lifecycleConfig LifecycleConfig
 	lifecycleConfig.Name = lifecycle.Name()
 	// Look deeper into Stage ....
@@ -34,11 +33,11 @@ func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string, levels []int) (
 	if err != nil {
 		return lifecycleConfig, err
 	}
-	
+
 	for _, file := range files {
 		filePath := lifecyclePath + "/" + file.Name()
-		if len(lifecycleLevel) > 0 && file.IsDir() {
-			lifecycle, err := parseLifecycle(file, filePath, lifecycleLevel)
+		if file.IsDir() {
+			lifecycle, err := parseLifecycle(file, filePath)
 			if err != nil {
 				return lifecycleConfig, err
 			}
@@ -57,13 +56,13 @@ func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string, levels []int) (
 			}
 		}
 	}
-	
+
 	return lifecycleConfig, nil
 }
 
-func parseAppFiles (file os.FileInfo, filePath string, appConfigs []AppConfig) ([]AppConfig, error) {
+func parseAppFiles(file os.FileInfo, filePath string, appConfigs []AppConfig) ([]AppConfig, error) {
 	var found bool
-	appC := AppConfig { Enable: true}
+	appC := AppConfig{Enable: true}
 	ext := path.Ext(file.Name())
 	if ext == ".yaml" {
 		reg := regexp.MustCompile("-values.yaml")
@@ -76,12 +75,12 @@ func parseAppFiles (file os.FileInfo, filePath string, appConfigs []AppConfig) (
 		appC.Name = split[0]
 		appC.ChartFile = filePath
 		content, err := ioutil.ReadFile(appC.ChartFile)
-		if err !=nil {
+		if err != nil {
 			return appConfigs, err
 		}
 		chartStr := strings.TrimSpace(string(content))
 		appC.Chart = chartStr
-		if (chartStr == "dnd") {
+		if chartStr == "dnd" {
 			appC.Enable = false
 		} else {
 			appC.Enable = true
@@ -101,10 +100,10 @@ func parseAppFiles (file os.FileInfo, filePath string, appConfigs []AppConfig) (
 			break
 		}
 	}
-	
+
 	if !found {
 		appConfigs = append(appConfigs, appC)
 	}
-	
+
 	return appConfigs, nil
 }

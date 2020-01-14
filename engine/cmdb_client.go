@@ -12,7 +12,7 @@ func createCloudProvider(h *client.CmdbClient, cloud pb.CloudProvider) (*pb.Clou
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return res.Result, nil
 }
 
@@ -23,19 +23,18 @@ func createRegion(h *client.CmdbClient, region pb.Region) (*pb.Region, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return res.Result, nil
 }
 
-
-func createStage(h *client.CmdbClient, stage pb.Stage) (*pb.Stage, error) {
-	var req pb.CreateStageRequest
-	req.Payload = &stage
-	res, err := h.CreateStage(&req)
+func createLifecycle(h *client.CmdbClient, lifecycle pb.Lifecycle) (*pb.Lifecycle, error) {
+	var req pb.CreateLifecycleRequest
+	req.Payload = &lifecycle
+	res, err := h.CreateLifecycle(&req)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return res.Result, nil
 }
 
@@ -46,7 +45,7 @@ func createEnvironment(h *client.CmdbClient, environment pb.Environment) (*pb.En
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return res.Result, nil
 }
 
@@ -57,18 +56,29 @@ func createApplication(h *client.CmdbClient, app pb.Application) (*pb.Applicatio
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return res.Result, nil
 }
 
-func createChartVersion(h *client.CmdbClient, chart pb.ChartVersion) (*pb.ChartVersion, error) {
-	var req pb.CreateChartVersionRequest
+func createAppVersion(h *client.CmdbClient, chart pb.AppVersion) (*pb.AppVersion, error) {
+	var req pb.CreateAppVersionRequest
 	req.Payload = &chart
-	res, err := h.CreateChartVersion(&req)
+	res, err := h.CreateAppVersion(&req)
 	if err != nil {
 		return nil, err
 	}
-	
+
+	return res.Result, nil
+}
+
+func createAppConfig(h *client.CmdbClient, config pb.AppConfig) (*pb.AppConfig, error) {
+	var req pb.CreateAppConfigRequest
+	req.Payload = &config
+	res, err := h.CreateAppConfig(&req)
+	if err != nil {
+		return nil, err
+	}
+
 	return res.Result, nil
 }
 
@@ -76,6 +86,18 @@ func createApplicationInstance(h *client.CmdbClient, app pb.ApplicationInstance)
 	var req pb.CreateApplicationInstanceRequest
 	req.Payload = &app
 	res, err := h.CreateApplicationInstance(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Result, nil
+}
+
+
+func createChartVersion(h *client.CmdbClient, chart pb.ChartVersion) (*pb.ChartVersion, error) {
+	var req pb.CreateChartVersionRequest
+	req.Payload = &chart
+	res, err := h.CreateChartVersion(&req)
 	if err != nil {
 		return nil, err
 	}

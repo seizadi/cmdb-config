@@ -6,5 +6,5 @@ import (
 )
 
 func configCmdb(c *cli.Context) {
-	engine.ConfigCmdb(getHost(c), getApiKey(c), c.String("repo"))
+	engine.ConfigCmdb(getHost(c), getApiKey(c), c.String("repo"), c.String("charts"))
 }

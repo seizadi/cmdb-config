@@ -14,6 +14,10 @@ var Commands = []cli.Command{
 				Name:  "repo, r",
 				Usage: "GitHub repo for CMDB Config",
 			},
+			cli.StringFlag{
+				Name:  "charts, c",
+				Usage: "Charts repo for CMDB Config",
+			},
 		},
 	},
 }
