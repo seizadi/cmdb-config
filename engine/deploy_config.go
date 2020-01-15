@@ -23,11 +23,13 @@ type LifecycleConfig struct {
 	ValueFile        string
 	Value            interface{}
 	LifecycleConfigs []LifecycleConfig
+	BuildPath	string // TODO - Replace with server side logic to compute build tree
 }
 
 func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string) (LifecycleConfig, error) {
 	var lifecycleConfig LifecycleConfig
 	lifecycleConfig.Name = lifecycle.Name()
+	lifecycleConfig.BuildPath = getBuildPath(lifecyclePath)
 	// Look deeper into Stage ....
 	files, err := ioutil.ReadDir(lifecyclePath)
 	if err != nil {
@@ -50,7 +52,7 @@ func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string) (LifecycleConfi
 					continue
 				}
 			}
-			lifecycleConfig.AppConfigs, err = parseAppFiles(file, filePath, lifecycleConfig.AppConfigs)
+			lifecycleConfig.AppConfigs, err = parseAppFiles(file, filePath, lifecycleConfig.AppConfigs, false)
 			if err != nil {
 				return lifecycleConfig, err
 			}
@@ -60,12 +62,24 @@ func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string) (LifecycleConfi
 	return lifecycleConfig, nil
 }
 
-func parseAppFiles(file os.FileInfo, filePath string, appConfigs []AppConfig) ([]AppConfig, error) {
+func getBuildPath(lifecyclePath string) string {
+	files := strings.SplitAfter(lifecyclePath, "/envs")
+	dir, _ := path.Split(files[0])
+	buildPath := path.Join(dir, "build", files[1])
+	return buildPath
+}
+
+func parseAppFiles(file os.FileInfo, filePath string, appConfigs []AppConfig, envFlag bool) ([]AppConfig, error) {
 	var found bool
 	appC := AppConfig{Enable: true}
 	ext := path.Ext(file.Name())
 	if ext == ".yaml" {
-		reg := regexp.MustCompile("-values.yaml")
+		var reg *regexp.Regexp
+		if envFlag == false {
+			reg = regexp.MustCompile("-values.yaml")
+		} else {
+			reg = regexp.MustCompile(".yaml")
+		}
 		split := reg.Split(file.Name(), -1)
 		appC.Name = split[0]
 		appC.ValueFile = filePath

@@ -151,8 +151,8 @@ github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6So
 github.com/russross/blackfriday v1.5.2 h1:HyvC0ARfnZBqnXwABFeSZHpKvJHJJfPz81GNueLj0oo=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/satori/go.uuid v1.2.0/go.mod h1:dA0hQrYB0VpLJoorglMZABFdXlWrHn1NEOzdhQKdks0=
-github.com/seizadi/cmdb v0.0.21 h1:2tU1koFaqltWJCm7diAmKEeTMdhRbIzVzL8ODocnT5k=
-github.com/seizadi/cmdb v0.0.21/go.mod h1:dzod4UVAhBqNyhjtrKxOlCq/YShI0QYSGMDBtisIfl0=
+github.com/seizadi/cmdb v0.0.22 h1:SNFbAESYVmf2mKlHvNBPUb4XL4gVVpacegffdejFkC4=
+github.com/seizadi/cmdb v0.0.22/go.mod h1:dzod4UVAhBqNyhjtrKxOlCq/YShI0QYSGMDBtisIfl0=
 github.com/sirupsen/logrus v1.0.5 h1:8c8b5uO0zS4X6RPl/sd1ENwSkIc0/H2PaHxE3udaE8I=
 github.com/sirupsen/logrus v1.0.5/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.2.0 h1:juTguoYk5qI21pwyTXY3B3Y5cOTH3ZUyZCg1v/mihuo=
