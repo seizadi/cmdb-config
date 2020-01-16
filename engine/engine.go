@@ -9,19 +9,6 @@ import (
 func ConfigCmdb(host string, apiKey string, repo string, chartsRepo string) error {
 	basePath := "./tmp"
 	destPath := basePath + "/repo"
-	//var files []string
-	//
-	//err := filepath.Walk(destPath, func(path string, info os.FileInfo, err error) error {
-	//	files = append(files, path)
-	//	return nil
-	//})
-	//if err != nil {
-	//	return err
-	//}
-	//for _, file := range files {
-	//	d, f := path.Split(file)
-	//	fmt.Println(d, f)
-	//}
 
 	// Get Repo
 	GitPull(repo, basePath, destPath)

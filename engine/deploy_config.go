@@ -81,8 +81,10 @@ func parseAppFiles(file os.FileInfo, filePath string, appConfigs []AppConfig, en
 			reg = regexp.MustCompile(".yaml")
 		}
 		split := reg.Split(file.Name(), -1)
-		appC.Name = split[0]
-		appC.ValueFile = filePath
+		if len(split) > 1 { // Ignore if it doesn't have valid extension
+			appC.Name = split[0]
+			appC.ValueFile = filePath
+		}
 	} else if ext == ".txt" {
 		reg := regexp.MustCompile("-version.txt")
 		split := reg.Split(file.Name(), -1)
