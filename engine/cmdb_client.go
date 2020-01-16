@@ -93,7 +93,6 @@ func createApplicationInstance(h *client.CmdbClient, app pb.ApplicationInstance)
 	return res.Result, nil
 }
 
-
 func createChartVersion(h *client.CmdbClient, chart pb.ChartVersion) (*pb.ChartVersion, error) {
 	var req pb.CreateChartVersionRequest
 	req.Payload = &chart
@@ -101,6 +100,6 @@ func createChartVersion(h *client.CmdbClient, chart pb.ChartVersion) (*pb.ChartV
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return res.Result, nil
 }

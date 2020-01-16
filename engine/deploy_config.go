@@ -23,7 +23,7 @@ type LifecycleConfig struct {
 	ValueFile        string
 	Value            interface{}
 	LifecycleConfigs []LifecycleConfig
-	BuildPath	string // TODO - Replace with server side logic to compute build tree
+	BuildPath        string // TODO - Replace with server side logic to compute build tree
 }
 
 func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string) (LifecycleConfig, error) {

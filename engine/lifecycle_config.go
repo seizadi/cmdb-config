@@ -21,7 +21,7 @@ type LifecycleState struct {
 
 func newLifecycleState(host string, apiKey string, chartsRepo string) (*LifecycleState, error) {
 	state := LifecycleState{}
-	
+
 	h, err := client.NewCmdbClient(host, apiKey)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 	if err != nil {
 		return err
 	}
-	
+
 	err = state.visitLifecycle(lifecycle)
 	if err != nil {
 		return err
@@ -59,17 +59,17 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 	return nil
 }
 
-func (s *LifecycleState)visitLifecycle(lifecycle LifecycleConfig) error {
+func (s *LifecycleState) visitLifecycle(lifecycle LifecycleConfig) error {
 	var rootId *resource.Identifier
 	var envFlag bool
-	
+
 	if len(lifecycle.LifecycleConfigs) > 0 {
 		envFlag = false
 		root, err := getLifeCycle(lifecycle)
 		if err != nil {
 			return err
 		}
-		
+
 		l_ret, err := createLifecycle(s.h, root)
 		if err != nil {
 			return err
@@ -81,46 +81,46 @@ func (s *LifecycleState)visitLifecycle(lifecycle LifecycleConfig) error {
 		if err != nil {
 			return err
 		}
-		
+
 		e_ret, err := createEnvironment(s.h, root)
 		if err != nil {
 			return err
 		}
 		rootId = e_ret.Id
 	}
-	
+
 	for _, a := range lifecycle.AppConfigs {
 		app, new, err := findCreateApplication(s.h, a.Name, s.apps)
 		if err != nil {
 			return err
 		}
-		
+
 		if new == true {
 			s.apps = append(s.apps, app)
 		}
-		
+
 		chart, new, err := findCreateChart(s.h, app, a.Chart, s.charts, s.chartsRepo, false)
 		if err != nil {
 			return err
 		}
-		
+
 		if new == true {
 			s.charts = append(s.charts, chart)
 		}
-	
+
 		var appVersion pb.AppVersion
-		if (envFlag) {
+		if envFlag {
 			appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: rootId}
 		} else {
 			appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: rootId}
-			}
+		}
 		_, err = createAppVersion(s.h, appVersion)
 		if err != nil {
 			return err
 		}
-		
+
 		var appConfig pb.AppConfig
-		if (envFlag) {
+		if envFlag {
 			appConfig = pb.AppConfig{Name: a.Name, EnvironmentId: rootId, ApplicationId: app.Id}
 		} else {
 			appConfig = pb.AppConfig{Name: a.Name, LifecycleId: rootId, ApplicationId: app.Id}
@@ -132,13 +132,13 @@ func (s *LifecycleState)visitLifecycle(lifecycle LifecycleConfig) error {
 			}
 			appConfig.ConfigYaml = string(content)
 		}
-		
+
 		_, err = createAppConfig(s.h, appConfig)
 		if err != nil {
 			return err
 		}
 	}
-	
+
 	if len(lifecycle.LifecycleConfigs) > 0 {
 		for _, l := range lifecycle.LifecycleConfigs {
 			err := s.visitLifecycle(l)
@@ -146,7 +146,7 @@ func (s *LifecycleState)visitLifecycle(lifecycle LifecycleConfig) error {
 				return err
 			}
 		}
-		
+
 	} else {
 		// Create ApplicationInstances
 		err := s.createEnvironmentAppInstances(rootId, lifecycle)
@@ -154,19 +154,18 @@ func (s *LifecycleState)visitLifecycle(lifecycle LifecycleConfig) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
-
-func (s *LifecycleState)createEnvironmentAppInstances(rootId *resource.Identifier, lifecycleConfig LifecycleConfig) error {
+func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifier, lifecycleConfig LifecycleConfig) error {
 	var appConfigs []AppConfig
 	lifecyclePath := lifecycleConfig.BuildPath
 	files, err := ioutil.ReadDir(lifecyclePath)
 	if err != nil {
 		return err
 	}
-	
+
 	for _, file := range files {
 		filePath := lifecyclePath + "/" + file.Name()
 		if file.IsDir() {
@@ -184,28 +183,33 @@ func (s *LifecycleState)createEnvironmentAppInstances(rootId *resource.Identifie
 			}
 		}
 	}
-	
+
 	for _, a := range appConfigs {
 		if len(a.ChartFile) > 0 {
 			app, new, err := findCreateApplication(s.h, a.Name, s.apps)
 			if err != nil {
 				return err
 			}
-			
+
 			if new == true {
 				s.apps = append(s.apps, app)
 			}
-			
+
 			chart, new, err := findCreateChart(s.h, app, a.Chart, s.charts, s.chartsRepo, true)
 			if err != nil {
 				return err
 			}
-			
+
 			if new == true {
 				s.charts = append(s.charts, chart)
 			}
-			
-			appInstance := pb.ApplicationInstance{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: rootId}
+
+			appInstance := pb.ApplicationInstance{
+				Name:           lifecycleConfig.Name + "/" + app.Name,
+				ChartVersionId: chart.Id,
+				ApplicationId:  app.Id,
+				EnvironmentId:  rootId}
+
 			if len(a.ValueFile) > 0 {
 				content, err := ioutil.ReadFile(a.ValueFile)
 				if err != nil {
@@ -213,7 +217,7 @@ func (s *LifecycleState)createEnvironmentAppInstances(rootId *resource.Identifie
 				}
 				appInstance.ConfigYaml = string(content)
 			}
-			
+
 			_, err = createApplicationInstance(s.h, appInstance)
 			if err != nil {
 				return err
@@ -248,7 +252,7 @@ func getEnvironment(lifecycleConfig LifecycleConfig) (pb.Environment, error) {
 		}
 		e.ConfigYaml = string(content)
 	}
-	
+
 	return e, nil
 }
 
@@ -267,22 +271,22 @@ func findCreateApplication(h *client.CmdbClient, name string, apps []pb.Applicat
 	return *retApp, true, nil
 }
 
-type BuildArtifacts struct{
+type BuildArtifacts struct {
 	Artifacts []BuildChart
 }
 
 type BuildChart struct {
-	Name string
+	Name      string
 	Reference string
-	Type string
+	Type      string
 }
 
 func findCreateChart(h *client.CmdbClient, app pb.Application, chart string, charts []pb.ChartVersion, chartRepo string, envFlag bool) (pb.ChartVersion, bool, error) {
 	var appChart string
 	var version string
-	
+
 	appChart = chartRepo + "/" + app.Name
-	
+
 	if envFlag == false {
 		version = chart
 	} else {
@@ -291,20 +295,20 @@ func findCreateChart(h *client.CmdbClient, app pb.Application, chart string, cha
 		if err != nil {
 			return pb.ChartVersion{}, false, err
 		}
-		
+
 		base := path.Base(build.Artifacts[0].Reference)
 		reg := regexp.MustCompile(".tgz")
 		split := reg.Split(base, -1)
 		version = split[0]
 	}
-	
+
 	for _, c := range charts {
 		if c.Repo == appChart && c.Version == version {
 			return c, false, nil
 		}
 	}
-	
-	chartVersion := pb.ChartVersion{ Name: appChart + ":" + version, Repo: appChart, Version: version, ApplicationId: app.Id }
+
+	chartVersion := pb.ChartVersion{Name: appChart + ":" + version, Repo: appChart, Version: version, ApplicationId: app.Id}
 	retChart, err := createChartVersion(h, chartVersion)
 	if err != nil {
 		return chartVersion, false, err

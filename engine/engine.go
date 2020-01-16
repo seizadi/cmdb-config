@@ -23,8 +23,8 @@ func ConfigCmdb(host string, apiKey string, repo string, chartsRepo string) erro
 	//	fmt.Println(d, f)
 	//}
 
-	//// Get Repo
-	//GitPull(repo, basePath, destPath)
+	// Get Repo
+	GitPull(repo, basePath, destPath)
 
 	// Parse Repo and Populate CMDB
 	var lifecycle os.FileInfo
