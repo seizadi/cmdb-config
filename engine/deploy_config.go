@@ -1,9 +1,11 @@
 package engine
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -90,16 +92,38 @@ func parseAppFiles(file os.FileInfo, filePath string, appConfigs []AppConfig, en
 		split := reg.Split(file.Name(), -1)
 		appC.Name = split[0]
 		appC.ChartFile = filePath
-		content, err := ioutil.ReadFile(appC.ChartFile)
-		if err != nil {
-			return appConfigs, err
+		// We have symlink used for the files now!
+		destFilePath := filePath
+		if file.Mode()&os.ModeSymlink != 0 {
+			sourceFilePath, err := os.Readlink(filePath)
+			if err != nil {
+				return appConfigs, err
+			}
+			destFilePath = sourceFilePath
 		}
-		chartStr := strings.TrimSpace(string(content))
-		appC.Chart = chartStr
-		if chartStr == "dnd" {
-			appC.Enable = false
+		if !path.IsAbs(destFilePath) {
+			//base := path.Base(filePath)
+			//filepath.Rel()
+			absFilePath, err  := filepath.EvalSymlinks(filePath)
+			if err != nil {
+				fmt.Print(" Error: ", err, " reading file ", filePath, "\n")
+			}
+			destFilePath = absFilePath
+		}
+		if len(destFilePath) > 0 {
+			content, err := ioutil.ReadFile(destFilePath)
+			if err != nil {
+				return appConfigs, err
+			}
+			chartStr := strings.TrimSpace(string(content))
+			appC.Chart = chartStr
+			if chartStr == "dnd" {
+				appC.Enable = false
+			} else {
+				appC.Enable = true
+			}
 		} else {
-			appC.Enable = true
+			appC.Enable = false
 		}
 	}
 	// Need to parse appCatalogConfigs and see if there is an entry already here.

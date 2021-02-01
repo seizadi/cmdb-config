@@ -1,0 +1,1954 @@
+syntax = "proto3";
+
+package api.cmdb;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/api/annotations.proto";
+import "github.com/lyft/protoc-gen-validate/validate/validate.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+import "github.com/infobloxopen/protoc-gen-gorm/options/gorm.proto";
+import "github.com/infobloxopen/protoc-gen-gorm/types/types.proto";
+import "github.com/infobloxopen/atlas-app-toolkit/query/collection_operators.proto";
+import "github.com/infobloxopen/atlas-app-toolkit/rpc/resource/resource.proto";
+import "github.com/infobloxopen/protoc-gen-atlas-query-validate/options/query_validate.proto";
+import "github.com/infobloxopen/protoc-gen-atlas-validate/options/atlas_validate.proto";
+
+option go_package = "github.com/seizadi/cmdb/pkg/pb;pb";
+
+// The Cmdb service, GetVersion RPC, and Version message
+// make up a simple "starter" example. It allows the Atlas CLI to generate an
+// end-to-end example for the sake of demonstration. Feel free to change
+// GetVersion to better-suit how your versioning system, or get rid of it entirely.
+
+// Here are some helpful resources to aid you in your protobuf quest:
+// https://github.com/infobloxopen/atlas-contacts-app/blob/master/proto/contacts.proto
+// https://developers.google.com/protocol-buffers/docs/proto
+// https://github.com/grpc-ecosystem/grpc-gateway
+// https://developers.google.com/protocol-buffers/docs/style
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  info: {
+    title: "CMDB";
+    version: "1.0";
+    contact: {
+        name: "Soheil Eizadi";
+        url: "https://github.com/seizadi/cmdb";
+        email: "seizadi@gmail.com";
+    };
+  };
+  schemes: HTTP;
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+  base_path: "/v1/";
+  security_definitions: {
+    security: {
+      key: "ApiKeyAuth";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+      };
+    };
+  };
+  security: {
+    security_requirement: {
+      key: "ApiKeyAuth";
+      value: {};
+    }
+  };
+};
+
+
+// ---------------------------------
+// CMDB Application Version
+// ---------------------------------
+message VersionResponse {
+  string version = 1;
+}
+
+service Cmdb {
+  rpc GetVersion (google.protobuf.Empty) returns (VersionResponse) {
+  // TODO: Provide mappings between REST endpoints and service methods.
+    option (google.api.http) = {
+      get: "/version"
+    };
+  }
+}
+
+enum Provider {
+  UNKNOWN_PROVIDER = 0;
+  AWS = 1;
+  AZURE = 2;
+  GCP = 3;
+  EQUINIX = 4;
+}
+
+// ------------------------------------------------------------------------
+// CloudProvider represents a particular Cloud Provider e.g. AWS or Azure
+// ------------------------------------------------------------------------
+message CloudProvider {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The CloudProvider identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the CloudProvider
+  string name = 2;
+
+  // The description of the CloudProvider
+  string description = 3;
+
+  // The Provider
+  Provider provider = 4;
+
+  // Cloud Provider Account Number
+  string account = 5;
+
+  // Regions for the CloudProvider
+  repeated Region regions = 6;
+}
+
+message CreateCloudProviderRequest {
+  CloudProvider payload = 1;
+}
+
+message CreateCloudProviderResponse {
+  CloudProvider result = 1;
+}
+
+message ReadCloudProviderRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadCloudProviderResponse {
+  CloudProvider result = 1;
+}
+
+message UpdateCloudProviderRequest {
+  CloudProvider payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateCloudProviderResponse {
+  CloudProvider result = 1;
+}
+
+message DeleteCloudProviderRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteCloudProviderResponse {}
+
+message ListCloudProviderRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListCloudProvidersResponse {
+  repeated CloudProvider results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service CloudProviders {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a CloudProvider information.
+  rpc Create (CreateCloudProviderRequest) returns (CreateCloudProviderResponse) {
+    option (google.api.http) = {
+            post: "/cloud_providers"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a CloudProvider information by identifier.
+  rpc Read (ReadCloudProviderRequest) returns (ReadCloudProviderResponse) {
+    option (google.api.http) = {
+            get: "/cloud_providers/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a CloudProvider information.
+  rpc Update (UpdateCloudProviderRequest) returns (UpdateCloudProviderResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/cloud_providers/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/cloud_providers/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular CloudProvider.
+  rpc Delete (DeleteCloudProviderRequest) returns (DeleteCloudProviderResponse) {
+    option (google.api.http) = {
+            delete: "/cloud_providers/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "CloudProvider";
+  }
+
+  // Use this method to retrieve all the CloudProviders.
+  rpc List (ListCloudProviderRequest) returns (ListCloudProvidersResponse) {
+    option (google.api.http) = {
+            get: "/cloud_providers"
+        };
+  }
+}
+
+// --------------------------------------------------------------------
+// Region represents a particular Geo for Cloud Provider e.g. us-east-1
+// --------------------------------------------------------------------
+message Region {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Region identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Region
+  string name = 2;
+
+  // The description of the Region
+  string description = 3;
+
+  // The Networks in a Region
+  repeated Network networks = 4;
+
+  // Reference to Cloud Provider
+  atlas.rpc.Identifier cloud_provider_id = 5 [(gorm.field) = {reference_of: "CloudProvider", tag: {type: "UUID"}}];
+}
+
+message CreateRegionRequest {
+  Region payload = 1;
+}
+
+message CreateRegionResponse {
+  Region result = 1;
+}
+
+message ReadRegionRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadRegionResponse {
+  Region result = 1;
+}
+
+message UpdateRegionRequest {
+  Region payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateRegionResponse {
+  Region result = 1;
+}
+
+message DeleteRegionRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteRegionResponse {}
+
+message ListRegionRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListRegionsResponse {
+  repeated Region results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Regions {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Region information.
+  rpc Create (CreateRegionRequest) returns (CreateRegionResponse) {
+    option (google.api.http) = {
+            post: "/regions"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Region information by identifier.
+  rpc Read (ReadRegionRequest) returns (ReadRegionResponse) {
+    option (google.api.http) = {
+            get: "/regions/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Region information.
+  rpc Update (UpdateRegionRequest) returns (UpdateRegionResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/regions/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/regions/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Region.
+  rpc Delete (DeleteRegionRequest) returns (DeleteRegionResponse) {
+    option (google.api.http) = {
+            delete: "/regions/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Region";
+  }
+
+  // Use this method to retrieve all the Regions.
+  rpc List (ListRegionRequest) returns (ListRegionsResponse) {
+    option (google.api.http) = {
+            get: "/regions"
+        };
+  }
+}
+
+// ------------------------------------------------------
+// Network represents a particular AWS VPC
+// ------------------------------------------------------
+message Network {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Network identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Network
+  string name = 2;
+
+  // The description of the Network
+  string description = 3;
+
+  // Reference to Region
+  atlas.rpc.Identifier region_id = 4 [(gorm.field) = {reference_of: "Region", tag: {type: "UUID"}}];
+}
+
+message CreateNetworkRequest {
+  Network payload = 1;
+}
+
+message CreateNetworkResponse {
+  Network result = 1;
+}
+
+message ReadNetworkRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadNetworkResponse {
+  Network result = 1;
+}
+
+message UpdateNetworkRequest {
+  Network payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateNetworkResponse {
+  Network result = 1;
+}
+
+message DeleteNetworkRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteNetworkResponse {}
+
+message ListNetworkRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListNetworksResponse {
+  repeated Network results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Networks {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Network information.
+  rpc Create (CreateNetworkRequest) returns (CreateNetworkResponse) {
+    option (google.api.http) = {
+            post: "/networks"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Network information by identifier.
+  rpc Read (ReadNetworkRequest) returns (ReadNetworkResponse) {
+    option (google.api.http) = {
+            get: "/networks/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Network information.
+  rpc Update (UpdateNetworkRequest) returns (UpdateNetworkResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/networks/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/networks/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Network.
+  rpc Delete (DeleteNetworkRequest) returns (DeleteNetworkResponse) {
+    option (google.api.http) = {
+            delete: "/networks/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Network";
+  }
+
+  // Use this method to retrieve all the Networks.
+  rpc List (ListNetworkRequest) returns (ListNetworksResponse) {
+    option (google.api.http) = {
+            get: "/networks"
+        };
+  }
+}
+
+// -----------------------------------------------------------
+// Lifecycle represents a stage in CI/CD e.g. preprod or prod
+// -----------------------------------------------------------
+message Lifecycle {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Lifecycle identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Lifecycle
+  string name = 2;
+
+  // The description of the Lifecycle
+  string description = 3;
+
+  // Custom configuration
+  string config_yaml = 4;
+
+  // Evironments in this Lifecycle
+  repeated Environment environments = 5;
+
+  // Lifecycles chained to this stage
+  repeated Lifecycle lifecycles = 6;
+
+  // AppConfig
+  repeated AppConfig app_config = 7;
+
+  // AppVersion
+  repeated AppVersion app_version = 8;
+
+  // Reference to parent Lifecycle
+  atlas.rpc.Identifier lifecycle_id = 9 [(gorm.field) = {reference_of: "Lifecycle", tag: {type: "UUID"}}];
+}
+
+message CreateLifecycleRequest {
+  Lifecycle payload = 1;
+}
+
+message CreateLifecycleResponse {
+  Lifecycle result = 1;
+}
+
+message ReadLifecycleRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadLifecycleResponse {
+  Lifecycle result = 1;
+}
+
+message UpdateLifecycleRequest {
+  Lifecycle payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateLifecycleResponse {
+  Lifecycle result = 1;
+}
+
+message DeleteLifecycleRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteLifecycleResponse {}
+
+message ListLifecycleRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListLifecyclesResponse {
+  repeated Lifecycle results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Lifecycles {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Lifecycle information.
+  rpc Create (CreateLifecycleRequest) returns (CreateLifecycleResponse) {
+    option (google.api.http) = {
+            post: "/lifecycles"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Lifecycle information by identifier.
+  rpc Read (ReadLifecycleRequest) returns (ReadLifecycleResponse) {
+    option (google.api.http) = {
+            get: "/lifecycles/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Lifecycle information.
+  rpc Update (UpdateLifecycleRequest) returns (UpdateLifecycleResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/lifecycles/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/lifecycles/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Lifecycle.
+  rpc Delete (DeleteLifecycleRequest) returns (DeleteLifecycleResponse) {
+    option (google.api.http) = {
+            delete: "/lifecycles/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Lifecycle";
+  }
+
+  // Use this method to retrieve all the Lifecycles.
+  rpc List (ListLifecycleRequest) returns (ListLifecyclesResponse) {
+    option (google.api.http) = {
+            get: "/lifecycles"
+        };
+  }
+}
+
+
+// -------------------------------------------------------------
+// ChartVersion represents a Chart Version for an Application
+// -------------------------------------------------------------
+message ChartVersion {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The ChartVersion identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the ChartVersion
+  string name = 2;
+
+  // The description of the ChartVersion
+  string description = 3;
+
+  // The repo of the ChartVersion
+  string repo = 4;
+
+  // The version of the ChartVersion
+  string version = 5;
+
+  // The Event job details
+  gorm.types.JSONValue  chart_store = 6;
+
+  // Reference to Application
+  atlas.rpc.Identifier application_id = 7 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
+}
+
+message CreateChartVersionRequest {
+  ChartVersion payload = 1;
+}
+
+message CreateChartVersionResponse {
+  ChartVersion result = 1;
+}
+
+message ReadChartVersionRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadChartVersionResponse {
+  ChartVersion result = 1;
+}
+
+message UpdateChartVersionRequest {
+  ChartVersion payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateChartVersionResponse {
+  ChartVersion result = 1;
+}
+
+message DeleteChartVersionRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteChartVersionResponse {}
+
+message ListChartVersionRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListChartVersionsResponse {
+  repeated ChartVersion results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service ChartVersions {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a ChartVersion information.
+  rpc Create (CreateChartVersionRequest) returns (CreateChartVersionResponse) {
+    option (google.api.http) = {
+            post: "/chart_versions"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a ChartVersion information by identifier.
+  rpc Read (ReadChartVersionRequest) returns (ReadChartVersionResponse) {
+    option (google.api.http) = {
+            get: "/chart_versions/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a ChartVersion information.
+  rpc Update (UpdateChartVersionRequest) returns (UpdateChartVersionResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/chart_versions/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/chart_versions/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular ChartVersion.
+  rpc Delete (DeleteChartVersionRequest) returns (DeleteChartVersionResponse) {
+    option (google.api.http) = {
+            delete: "/chart_versions/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "ChartVersion";
+  }
+
+  // Use this method to retrieve all the ChartVersions.
+  rpc List (ListChartVersionRequest) returns (ListChartVersionsResponse) {
+    option (google.api.http) = {
+            get: "/chart_versions"
+        };
+  }
+}
+
+// ------------------------------------------------------------
+// AppConfig represents a custom configuration for Application
+// ------------------------------------------------------------
+message AppConfig {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The AppConfig identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the AppConfig
+  string name = 2;
+
+  // The description of the AppConfig
+  string description = 3;
+
+  // The custom configuration
+  string config_yaml = 4;
+
+  // Reference to Application
+  atlas.rpc.Identifier application_id = 5 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
+
+  // Reference to Lifecycle
+  atlas.rpc.Identifier lifecycle_id = 6 [(gorm.field) = {reference_of: "Lifecycle", tag: {type: "UUID"}}];
+
+  // Reference to Environment
+  atlas.rpc.Identifier environment_id = 7 [(gorm.field) = {reference_of: "Environment", tag: {type: "UUID"}}];
+}
+
+message CreateAppConfigRequest {
+  AppConfig payload = 1;
+}
+
+message CreateAppConfigResponse {
+  AppConfig result = 1;
+}
+
+message ReadAppConfigRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadAppConfigResponse {
+  AppConfig result = 1;
+}
+
+message UpdateAppConfigRequest {
+  AppConfig payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateAppConfigResponse {
+  AppConfig result = 1;
+}
+
+message DeleteAppConfigRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteAppConfigResponse {}
+
+message ListAppConfigRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListAppConfigsResponse {
+  repeated AppConfig results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service AppConfigs {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a AppConfig information.
+  rpc Create (CreateAppConfigRequest) returns (CreateAppConfigResponse) {
+    option (google.api.http) = {
+            post: "/app_configs"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a AppConfig information by identifier.
+  rpc Read (ReadAppConfigRequest) returns (ReadAppConfigResponse) {
+    option (google.api.http) = {
+            get: "/app_configs/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a AppConfig information.
+  rpc Update (UpdateAppConfigRequest) returns (UpdateAppConfigResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/app_configs/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/app_configs/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular AppConfig.
+  rpc Delete (DeleteAppConfigRequest) returns (DeleteAppConfigResponse) {
+    option (google.api.http) = {
+            delete: "/app_configs/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "AppConfig";
+  }
+
+  // Use this method to retrieve all the AppConfigs.
+  rpc List (ListAppConfigRequest) returns (ListAppConfigsResponse) {
+    option (google.api.http) = {
+            get: "/app_configs"
+        };
+  }
+}
+
+// -------------------------------------------------------------
+// Environment owns a set of ApplicationInstances for Deployment
+// -------------------------------------------------------------
+message Environment {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Environment identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Environment
+  string name = 2;
+
+  // The description of the Environment
+  string description = 3;
+
+  // Custom config for this Environment
+  string config_yaml = 4;
+
+  // ApplicationInstances in this Environment
+  repeated ApplicationInstance application_instances = 5;
+
+  // AppConfig
+  repeated AppConfig app_config = 6;
+
+  // AppVersion
+  repeated AppVersion app_version = 7;
+
+  // Lifecycle referenced by this Environment
+  atlas.rpc.Identifier lifecycle_id = 8 [(gorm.field) = {reference_of: "Lifecycle", tag: {type: "UUID"}}];
+}
+
+message CreateEnvironmentRequest {
+  Environment payload = 1;
+}
+
+message CreateEnvironmentResponse {
+  Environment result = 1;
+}
+
+message ReadEnvironmentRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadEnvironmentResponse {
+  Environment result = 1;
+}
+
+message UpdateEnvironmentRequest {
+  Environment payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateEnvironmentResponse {
+  Environment result = 1;
+}
+
+message DeleteEnvironmentRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteEnvironmentResponse {}
+
+message ListEnvironmentRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListEnvironmentsResponse {
+  repeated Environment results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Environments {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Environment information.
+  rpc Create (CreateEnvironmentRequest) returns (CreateEnvironmentResponse) {
+    option (google.api.http) = {
+            post: "/environments"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Environment information by identifier.
+  rpc Read (ReadEnvironmentRequest) returns (ReadEnvironmentResponse) {
+    option (google.api.http) = {
+            get: "/environments/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Environment information.
+  rpc Update (UpdateEnvironmentRequest) returns (UpdateEnvironmentResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/environments/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/environments/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Environment.
+  rpc Delete (DeleteEnvironmentRequest) returns (DeleteEnvironmentResponse) {
+    option (google.api.http) = {
+            delete: "/environments/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Environment";
+  }
+
+  // Use this method to retrieve all the Environments.
+  rpc List (ListEnvironmentRequest) returns (ListEnvironmentsResponse) {
+    option (google.api.http) = {
+            get: "/environments"
+        };
+  }
+}
+
+// ------------------------------------------------------
+// Application base resource that can be Deployed
+// ------------------------------------------------------
+message Application {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Application identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Application
+  string name = 2;
+
+  // The description of the Application
+  string description = 3;
+
+  // The Chart for the Application
+  string chart = 4;
+
+  // The repo e.g. GitHub for the Appliation
+  string repo = 5;
+
+
+  // The ticket link e.g. Jira link
+  string ticket_link = 6;
+
+  // Custom configuration
+  string config_yaml = 7;
+
+  // Application Versions
+  //repeated AppVersion app_versions = 8;
+
+  // Application Instances
+  //repeated ApplicationInstance application_instances = 9;
+}
+
+message CreateApplicationRequest {
+  Application payload = 1;
+}
+
+message CreateApplicationResponse {
+  Application result = 1;
+}
+
+message ReadApplicationRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadApplicationResponse {
+  Application result = 1;
+}
+
+message UpdateApplicationRequest {
+  Application payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateApplicationResponse {
+  Application result = 1;
+}
+
+message DeleteApplicationRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteApplicationResponse {}
+
+message ListApplicationRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListApplicationsResponse {
+  repeated Application results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Applications {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Application information.
+  rpc Create (CreateApplicationRequest) returns (CreateApplicationResponse) {
+    option (google.api.http) = {
+            post: "/applications"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Application information by identifier.
+  rpc Read (ReadApplicationRequest) returns (ReadApplicationResponse) {
+    option (google.api.http) = {
+            get: "/applications/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Application information.
+  rpc Update (UpdateApplicationRequest) returns (UpdateApplicationResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/applications/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/applications/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Application.
+  rpc Delete (DeleteApplicationRequest) returns (DeleteApplicationResponse) {
+    option (google.api.http) = {
+            delete: "/applications/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Application";
+  }
+
+  // Use this method to retrieve all the Applications.
+  rpc List (ListApplicationRequest) returns (ListApplicationsResponse) {
+    option (google.api.http) = {
+            get: "/applications"
+        };
+  }
+}
+
+// --------------------------------------------------------------
+// AppVersion represents a particular version of the Application
+// --------------------------------------------------------------
+message AppVersion {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true,
+  };
+
+  // The AppVersion identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the AppVersion
+  string name = 2;
+
+  // The description of the AppVersion
+  string description = 3;
+
+  // ChartVersion referenced
+  ChartVersion chart_version = 4 [(gorm.field).belongs_to = {}];
+
+  // ChartVersion referenced by this AppVersion
+  atlas.rpc.Identifier chart_version_id = 5 [(gorm.field) = {reference_of: "ChartVersion", tag: {type: "UUID"}}];
+
+  // Application referenced by this AppVersion
+  atlas.rpc.Identifier application_id = 6 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
+
+  // Lifecycle referenced by this AppVersion
+  atlas.rpc.Identifier lifecycle_id = 7 [(gorm.field) = {reference_of: "Lifecycle", tag: {type: "UUID"}}];
+
+  // Reference to Environment
+  atlas.rpc.Identifier environment_id = 8 [(gorm.field) = {reference_of: "Environment", tag: {type: "UUID"}}];
+}
+
+message CreateAppVersionRequest {
+  AppVersion payload = 1;
+}
+
+message CreateAppVersionResponse {
+  AppVersion result = 1;
+}
+
+message ReadAppVersionRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadAppVersionResponse {
+  AppVersion result = 1;
+}
+
+message UpdateAppVersionRequest {
+  AppVersion payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateAppVersionResponse {
+  AppVersion result = 1;
+}
+
+message DeleteAppVersionRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteAppVersionResponse {}
+
+message ListAppVersionRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListAppVersionsResponse {
+  repeated AppVersion results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service AppVersions {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a AppVersion information.
+  rpc Create (CreateAppVersionRequest) returns (CreateAppVersionResponse) {
+    option (google.api.http) = {
+            post: "/app_versions"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a AppVersion information by identifier.
+  rpc Read (ReadAppVersionRequest) returns (ReadAppVersionResponse) {
+    option (google.api.http) = {
+            get: "/app_versions/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a AppVersion information.
+  rpc Update (UpdateAppVersionRequest) returns (UpdateAppVersionResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/app_versions/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/app_versions/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular AppVersion.
+  rpc Delete (DeleteAppVersionRequest) returns (DeleteAppVersionResponse) {
+    option (google.api.http) = {
+            delete: "/app_versions/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "AppVersion";
+  }
+
+  // Use this method to retrieve all the AppVersions.
+  rpc List (ListAppVersionRequest) returns (ListAppVersionsResponse) {
+    option (google.api.http) = {
+            get: "/app_versions"
+        };
+  }
+}
+
+// -----------------------------------------------------------------------
+// ApplicationInstance represents application instance deployed in an Environment
+// -----------------------------------------------------------------------
+message ApplicationInstance {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The ApplicationInstance identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the ApplicationInstance
+  string name = 2;
+
+  // The description of the ApplicationInstance
+  string description = 3;
+
+  // Deployment of this ApplicationInstance
+  Deployment deployment = 4;
+
+  // Custom configuration
+  string config_yaml = 5;
+
+  // ChartVersion for the ApplicationInstance
+  ChartVersion chart_version = 6 [(gorm.field).belongs_to.preload = false];
+
+  // Reference to the ChartVersion
+  atlas.rpc.Identifier chart_version_id = 7 [(gorm.field) = {reference_of: "ChartVersion", tag: {type: "UUID"}}];
+
+  // Reference to the Environment
+  atlas.rpc.Identifier environment_id = 8 [(gorm.field) = {reference_of: "Environment", tag: {type: "UUID"}}];
+
+  // Reference to the Application
+  atlas.rpc.Identifier application_id = 9 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
+}
+
+message CreateApplicationInstanceRequest {
+  ApplicationInstance payload = 1;
+}
+
+message CreateApplicationInstanceResponse {
+  ApplicationInstance result = 1;
+}
+
+message ReadApplicationInstanceRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadApplicationInstanceResponse {
+  ApplicationInstance result = 1;
+}
+
+message UpdateApplicationInstanceRequest {
+  ApplicationInstance payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateApplicationInstanceResponse {
+  ApplicationInstance result = 1;
+}
+
+message DeleteApplicationInstanceRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteApplicationInstanceResponse {}
+
+message ListApplicationInstanceRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListApplicationInstancesResponse {
+  repeated ApplicationInstance results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service ApplicationInstances {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a ApplicationInstance information.
+  rpc Create (CreateApplicationInstanceRequest) returns (CreateApplicationInstanceResponse) {
+    option (google.api.http) = {
+            post: "/application_instances"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a ApplicationInstance information by identifier.
+  rpc Read (ReadApplicationInstanceRequest) returns (ReadApplicationInstanceResponse) {
+    option (google.api.http) = {
+            get: "/application_instances/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a ApplicationInstance information.
+  rpc Update (UpdateApplicationInstanceRequest) returns (UpdateApplicationInstanceResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/application_instances/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/application_instances/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular ApplicationInstance.
+  rpc Delete (DeleteApplicationInstanceRequest) returns (DeleteApplicationInstanceResponse) {
+    option (google.api.http) = {
+            delete: "/application_instances/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "ApplicationInstance";
+  }
+
+  // Use this method to retrieve all the ApplicationInstances.
+  rpc List (ListApplicationInstanceRequest) returns (ListApplicationInstancesResponse) {
+    option (google.api.http) = {
+            get: "/application_instances"
+        };
+  }
+}
+
+// ------------------------------------------------------
+// Vault represents the store for keeping Secrets
+// ------------------------------------------------------
+message Vault {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The vault identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the vault
+  string name = 2;
+
+  // The description of the vault
+  string description = 3;
+
+  // The list of Secrets stored against the path on vault
+  repeated Secret secrets = 5;
+}
+
+message CreateVaultRequest {
+  Vault payload = 1;
+}
+
+message CreateVaultResponse {
+  Vault result = 1;
+}
+
+message ReadVaultRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadVaultResponse {
+  Vault result = 1;
+}
+
+message UpdateVaultRequest {
+  Vault payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateVaultResponse {
+  Vault result = 1;
+}
+
+message DeleteVaultRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteVaultResponse {}
+
+message ListVaultRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListVaultsResponse {
+  repeated Vault results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Vaults {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Vault information.
+  rpc Create (CreateVaultRequest) returns (CreateVaultResponse) {
+    option (google.api.http) = {
+            post: "/vaults"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Vault information by identifier.
+  rpc Read (ReadVaultRequest) returns (ReadVaultResponse) {
+    option (google.api.http) = {
+            get: "/vaults/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Vault information.
+  rpc Update (UpdateVaultRequest) returns (UpdateVaultResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/vaults/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/vaults/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Vault.
+  rpc Delete (DeleteVaultRequest) returns (DeleteVaultResponse) {
+    option (google.api.http) = {
+            delete: "/vaults/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Vault";
+  }
+
+  // Use this method to retrieve all the Vaults.
+  rpc List (ListVaultRequest) returns (ListVaultsResponse) {
+    option (google.api.http) = {
+            get: "/vaults"
+        };
+  }
+}
+
+
+// --------------------------------------------------------
+// Secret represents confidential data stored in the Vault
+// --------------------------------------------------------
+message Secret {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The secret identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the container
+  string name = 2;
+
+  // The description of the container
+  string description = 3;
+
+  // The path on vault for the Secrets (e.g. /qa0-secrets)
+  string path = 4;
+
+  // The type of secret (e.g. opaque, or tls)
+  string type = 5;
+
+  // The key value of secret (note: value is stored on kubernetes secret
+  string key = 6;
+
+  // The vault the secret belongs to.
+  atlas.rpc.Identifier vault_id = 7 [(gorm.field) = {reference_of: "Vault", tag: {type: "UUID"}}];
+}
+
+
+message CreateSecretRequest {
+  Secret payload = 1;
+}
+
+message CreateSecretResponse {
+  Secret result = 1;
+}
+
+message ReadSecretRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadSecretResponse {
+  Secret result = 1;
+}
+
+message UpdateSecretRequest {
+  Secret payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateSecretResponse {
+  Secret result = 1;
+}
+
+message DeleteSecretRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteSecretResponse {}
+
+message ListSecretRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListSecretsResponse {
+  repeated Secret results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Secrets {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Secret information.
+  rpc Create (CreateSecretRequest) returns (CreateSecretResponse) {
+    option (google.api.http) = {
+            post: "/secrets"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Secret information by identifier.
+  rpc Read (ReadSecretRequest) returns (ReadSecretResponse) {
+    option (google.api.http) = {
+            get: "/secrets/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Secret information.
+  rpc Update (UpdateSecretRequest) returns (UpdateSecretResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/secrets/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/secrets/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Secret.
+  rpc Delete (DeleteSecretRequest) returns (DeleteSecretResponse) {
+    option (google.api.http) = {
+            delete: "/secrets/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Secret";
+  }
+
+  // Use this method to retrieve all the Secrets.
+  rpc List (ListSecretRequest) returns (ListSecretsResponse) {
+    option (google.api.http) = {
+            get: "/secrets"
+        };
+  }
+}
+
+// ---------------------------------------------------------------------
+// Artifact represents an element built by CI (e.g. resolved manifest)
+// ---------------------------------------------------------------------
+message Artifact {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Artifact identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Artifact
+  string name = 2;
+
+  // The description of the Artifact
+  string description = 3;
+
+  // The repo which stores the Artifact
+  string repo = 4;
+
+  // The commit Id of the Artifact in repo
+  string commit = 5;
+
+  // The ChartVersion of the artifact belongs to.
+  atlas.rpc.Identifier chart_version_id = 6 [(gorm.field) = {reference_of: "ChartVersion", tag: {type: "UUID"}}];
+}
+
+message CreateArtifactRequest {
+  Artifact payload = 1;
+}
+
+message CreateArtifactResponse {
+  Artifact result = 1;
+}
+
+message ReadArtifactRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadArtifactResponse {
+  Artifact result = 1;
+}
+
+message UpdateArtifactRequest {
+  Artifact payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateArtifactResponse {
+  Artifact result = 1;
+}
+
+message DeleteArtifactRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteArtifactResponse {}
+
+message ListArtifactRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListArtifactsResponse {
+  repeated Artifact results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Artifacts {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Artifact information.
+  rpc Create (CreateArtifactRequest) returns (CreateArtifactResponse) {
+    option (google.api.http) = {
+            post: "/artifacts"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Artifact information by identifier.
+  rpc Read (ReadArtifactRequest) returns (ReadArtifactResponse) {
+    option (google.api.http) = {
+            get: "/artifacts/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Artifact information.
+  rpc Update (UpdateArtifactRequest) returns (UpdateArtifactResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/artifacts/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/artifacts/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Artifact.
+  rpc Delete (DeleteArtifactRequest) returns (DeleteArtifactResponse) {
+    option (google.api.http) = {
+            delete: "/artifacts/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Artifact";
+  }
+
+  // Use this method to retrieve all the Artifacts.
+  rpc List (ListArtifactRequest) returns (ListArtifactsResponse) {
+    option (google.api.http) = {
+            get: "/artifacts"
+        };
+  }
+}
+
+
+// ------------------------------------------------------
+// KubeCluster represents a Kubernetes Cluster
+// ------------------------------------------------------
+message KubeCluster {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The KubeCluster identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the KubeCluster
+  string name = 2;
+
+  // The description of the KubeCluster
+  string description = 3;
+
+  // Reference to Network
+  atlas.rpc.Identifier network_id = 5 [(gorm.field) = {reference_of: "Network", tag: {type: "UUID"}}];
+}
+
+message CreateKubeClusterRequest {
+  KubeCluster payload = 1;
+}
+
+message CreateKubeClusterResponse {
+  KubeCluster result = 1;
+}
+
+message ReadKubeClusterRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadKubeClusterResponse {
+  KubeCluster result = 1;
+}
+
+message UpdateKubeClusterRequest {
+  KubeCluster payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateKubeClusterResponse {
+  KubeCluster result = 1;
+}
+
+message DeleteKubeClusterRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteKubeClusterResponse {}
+
+message ListKubeClusterRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListKubeClustersResponse {
+  repeated KubeCluster results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service KubeClusters {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a KubeCluster information.
+  rpc Create (CreateKubeClusterRequest) returns (CreateKubeClusterResponse) {
+    option (google.api.http) = {
+            post: "/kube_clusters"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a KubeCluster information by identifier.
+  rpc Read (ReadKubeClusterRequest) returns (ReadKubeClusterResponse) {
+    option (google.api.http) = {
+            get: "/kube_clusters/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a KubeCluster information.
+  rpc Update (UpdateKubeClusterRequest) returns (UpdateKubeClusterResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/kube_clusters/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/kube_clusters/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular KubeCluster.
+  rpc Delete (DeleteKubeClusterRequest) returns (DeleteKubeClusterResponse) {
+    option (google.api.http) = {
+            delete: "/kube_clusters/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "KubeCluster";
+  }
+
+  // Use this method to retrieve all the KubeClusters.
+  rpc List (ListKubeClusterRequest) returns (ListKubeClustersResponse) {
+    option (google.api.http) = {
+            get: "/kube_clusters"
+        };
+  }
+}
+
+// ---------------------------------------------------------------------
+// Deployment represents a particular ApplicationInstance running on Kubernetes
+// ---------------------------------------------------------------------
+message Deployment {
+  option (gorm.opts) = {
+      ormable: true,
+      multi_account: true
+  };
+
+  // The Deployment identifier.
+  atlas.rpc.Identifier id = 1 [(gorm.field).tag = {type: "UUID" primary_key: true}];
+
+  // The name of the Deployment
+  string name = 2;
+
+  // The description of the Deployment
+  string description = 3;
+
+  // Artifact for resolved manifest used for the ApplicationInstance
+  Artifact artifact = 4 [(gorm.field).belongs_to = {}];
+
+  // Reference to Artifact
+  atlas.rpc.Identifier artifact_id = 5 [(gorm.field) = {reference_of: "Artifact", tag: {type: "UUID"}}];
+
+  // Kubernetes Cluster on which the ApplicationInstance is deployed
+  KubeCluster kube_cluster = 6 [(gorm.field).belongs_to = {}];
+
+  // Reference to Kubernetes Cluster
+  atlas.rpc.Identifier kube_cluster_id = 7 [(gorm.field) = {reference_of: "KubeCluster", tag: {type: "UUID"}}];
+
+  // Reference to ApplicationInstanceInstance
+  atlas.rpc.Identifier application_instance_id = 8 [(gorm.field) = {reference_of: "ApplicationInstance", tag: {type: "UUID"}}];
+}
+
+message CreateDeploymentRequest {
+  Deployment payload = 1;
+}
+
+message CreateDeploymentResponse {
+  Deployment result = 1;
+}
+
+message ReadDeploymentRequest {
+  atlas.rpc.Identifier id = 1;
+  infoblox.api.FieldSelection fields = 2;
+}
+
+message ReadDeploymentResponse {
+  Deployment result = 1;
+}
+
+message UpdateDeploymentRequest {
+  Deployment payload = 1;
+  google.protobuf.FieldMask fields = 2;
+}
+
+message UpdateDeploymentResponse {
+  Deployment result = 1;
+}
+
+message DeleteDeploymentRequest {
+  atlas.rpc.Identifier id = 1;
+}
+
+message DeleteDeploymentResponse {}
+
+message ListDeploymentRequest {
+  infoblox.api.Filtering filter = 1;
+  infoblox.api.Sorting order_by = 2;
+  infoblox.api.FieldSelection fields = 3;
+  infoblox.api.Pagination paging = 4;
+}
+
+message ListDeploymentsResponse {
+  repeated Deployment results = 1;
+  infoblox.api.PageInfo page = 2;
+}
+
+service Deployments {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: true,
+    };
+
+  // Use this method to create a Deployment information.
+  rpc Create (CreateDeploymentRequest) returns (CreateDeploymentResponse) {
+    option (google.api.http) = {
+            post: "/deployments"
+            body: "payload"
+        };
+  }
+
+  // Use this method to read a Deployment information by identifier.
+  rpc Read (ReadDeploymentRequest) returns (ReadDeploymentResponse) {
+    option (google.api.http) = {
+            get: "/deployments/{id.resource_id}"
+        };
+  }
+
+  // Use this method to update a Deployment information.
+  rpc Update (UpdateDeploymentRequest) returns (UpdateDeploymentResponse) {
+    option (atlas_validate.method).allow_unknown_fields = false;
+    option (google.api.http) = {
+            put: "/deployments/{payload.id.resource_id}"
+            body: "payload"
+            additional_bindings: {
+                patch: "/deployments/{payload.id.resource_id}"
+                body: "payload"
+            }
+    };
+  }
+
+  // Use this method to delete a particular Deployment.
+  rpc Delete (DeleteDeploymentRequest) returns (DeleteDeploymentResponse) {
+    option (google.api.http) = {
+            delete: "/deployments/{id.resource_id}"
+        };
+    option (gorm.method).object_type = "Deployment";
+  }
+
+  // Use this method to retrieve all the Deployments.
+  rpc List (ListDeploymentRequest) returns (ListDeploymentsResponse) {
+    option (google.api.http) = {
+            get: "/deployments"
+        };
+  }
+}

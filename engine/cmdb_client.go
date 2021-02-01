@@ -103,3 +103,14 @@ func createChartVersion(h *client.CmdbClient, chart pb.ChartVersion) (*pb.ChartV
 
 	return res.Result, nil
 }
+
+func updateChartVersion(h *client.CmdbClient, chart pb.ChartVersion) (*pb.ChartVersion, error) {
+	var req pb.UpdateChartVersionRequest
+	req.Payload = &chart
+	res, err := h.UpdateChartVersion(&req)
+	if err != nil {
+		return nil, err
+	}
+	
+	return res.Result, nil
+}
