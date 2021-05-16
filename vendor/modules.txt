@@ -69,7 +69,7 @@ github.com/lyft/protoc-gen-validate/validate
 github.com/russross/blackfriday
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
-# github.com/seizadi/cmdb v0.0.28
+# github.com/seizadi/cmdb v0.0.30
 github.com/seizadi/cmdb/client
 github.com/seizadi/cmdb/pkg/pb
 # github.com/sirupsen/logrus v1.2.0

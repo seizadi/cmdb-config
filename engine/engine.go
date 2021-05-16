@@ -11,7 +11,7 @@ func ConfigCmdb(host string, apiKey string, repo string, chartsRepo string) erro
 	destPath := basePath + "/repo"
 
 	// Get Repo
-	GitPull(repo, basePath, destPath)
+	// GitPull(repo, basePath, destPath)
 
 	// Parse Repo and Populate CMDB
 	var lifecycle os.FileInfo
@@ -32,7 +32,10 @@ func ConfigCmdb(host string, apiKey string, repo string, chartsRepo string) erro
 		return err
 	}
 
-	createCmdbLifecycle(host, apiKey, lifecycleConfig, chartsRepo)
+	err = createCmdbLifecycle(host, apiKey, lifecycleConfig, chartsRepo)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

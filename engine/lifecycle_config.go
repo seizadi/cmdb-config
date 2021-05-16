@@ -91,44 +91,46 @@ func (s *LifecycleState) visitLifecycle(id *resource.Identifier, lifecycle Lifec
 	}
 
 	for _, a := range lifecycle.AppConfigs {
-		app, err := s.findCreateApplication(a.Name)
-		if err != nil {
-			return err
-		}
-
-		chart, err := s.findCreateChart(app, a.Chart, false)
-		if err != nil {
-			return err
-		}
-
-		var appVersion pb.AppVersion
-		if envFlag {
-			appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: rootId}
-		} else {
-			appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: rootId}
-		}
-		_, err = createAppVersion(s.h, appVersion)
-		if err != nil {
-			return err
-		}
-
-		var appConfig pb.AppConfig
-		if envFlag {
-			appConfig = pb.AppConfig{Name: a.Name, EnvironmentId: rootId, ApplicationId: app.Id}
-		} else {
-			appConfig = pb.AppConfig{Name: a.Name, LifecycleId: rootId, ApplicationId: app.Id}
-		}
-		if len(a.ValueFile) > 0 {
-			content, err := ioutil.ReadFile(a.ValueFile)
+		if a. Chart != "dnd" {
+			app, err := s.findCreateApplication(a.Name)
 			if err != nil {
 				return err
 			}
-			appConfig.ConfigYaml = string(content)
-		}
 
-		_, err = createAppConfig(s.h, appConfig)
-		if err != nil {
-			return err
+			chart, err := s.findCreateChart(app, a.Chart, false)
+			if err != nil {
+				return err
+			}
+
+			var appVersion pb.AppVersion
+			if envFlag {
+				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: rootId}
+			} else {
+				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: rootId}
+			}
+			_, err = createAppVersion(s.h, appVersion)
+			if err != nil {
+				return err
+			}
+
+			var appConfig pb.AppConfig
+			if envFlag {
+				appConfig = pb.AppConfig{Name: a.Name, EnvironmentId: rootId, ApplicationId: app.Id}
+			} else {
+				appConfig = pb.AppConfig{Name: a.Name, LifecycleId: rootId, ApplicationId: app.Id}
+			}
+			if len(a.ValueFile) > 0 {
+				content, err := ioutil.ReadFile(a.ValueFile)
+				if err != nil {
+					return err
+				}
+				appConfig.ConfigYaml = string(content)
+			}
+
+			_, err = createAppConfig(s.h, appConfig)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -167,10 +169,12 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 			ext := path.Ext(file.Name())
 			if ext == ".yaml" {
 				if file.Name() == "values.yaml" {
-					return errors.New("Build path has unexpected values.yaml file.")
+					// TODO - Not sure why this code returned error!
+					//return errors.New("Build path has unexpected values.yaml file.")
+					continue
 				}
 			}
-			appConfigs, err = parseAppFiles(file, filePath, appConfigs, true)
+			appConfigs, err = parseAppFiles(file, filePath, appConfigs)
 			if err != nil {
 				return err
 			}
@@ -184,7 +188,7 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 				return err
 			}
 
-			chart, err := s.findCreateChart(app, a.Chart, true)
+			chart, err := s.findCreateChart(app, a.Chart, false)
 			if err != nil {
 				return err
 			}
@@ -193,14 +197,9 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 				Name:           lifecycleConfig.Name + "/" + app.Name,
 				ChartVersionId: chart.Id,
 				ApplicationId:  app.Id,
-				EnvironmentId:  rootId}
-
-			if len(a.ValueFile) > 0 {
-				content, err := ioutil.ReadFile(a.ValueFile)
-				if err != nil {
-					return err
-				}
-				appInstance.ConfigYaml = string(content)
+				EnvironmentId:  rootId,
+				ConfigYaml: a.Value,
+				Enable: a.Enable,
 			}
 
 			_, err = createApplicationInstance(s.h, appInstance)
@@ -280,6 +279,7 @@ func (s *LifecycleState) findCreateChart(app pb.Application, chart string, envFl
 	if envFlag == false {
 		version = chart
 	} else {
+		// TODO - Do we need the code in else{} clause?
 		var build BuildArtifacts
 		err := json.Unmarshal([]byte(chart), &build)
 		if err != nil {
