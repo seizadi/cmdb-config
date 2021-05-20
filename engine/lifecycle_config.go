@@ -91,7 +91,7 @@ func (s *LifecycleState) visitLifecycle(id *resource.Identifier, lifecycle Lifec
 	}
 
 	for _, a := range lifecycle.AppConfigs {
-		if a. Chart != "dnd" {
+		if (a.Chart != "dnd") && (a.Chart == "dev") {
 			app, err := s.findCreateApplication(a.Name)
 			if err != nil {
 				return err

@@ -120,7 +120,7 @@ func parseAppFiles(file os.FileInfo, filePath string, appConfigs []AppConfig) ([
 			}
 			chartStr := strings.TrimSpace(string(content))
 			appC.Chart = chartStr
-			if chartStr == "dnd" {
+			if (chartStr == "dnd") || (chartStr == "dev") {
 				appC.Enable = false
 			} else {
 				appC.Enable = true
