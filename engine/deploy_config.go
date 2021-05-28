@@ -22,7 +22,6 @@ type AppConfig struct {
 type LifecycleConfig struct {
 	Name             string
 	AppConfigs       []AppConfig
-	ValueFile        string
 	Value            string
 	LifecycleConfigs []LifecycleConfig
 	BuildPath        string // TODO - Replace with server side logic to compute build tree
@@ -50,7 +49,11 @@ func parseLifecycle(lifecycle os.FileInfo, lifecyclePath string) (LifecycleConfi
 			ext := path.Ext(file.Name())
 			if ext == ".yaml" {
 				if file.Name() == "values.yaml" {
-					lifecycleConfig.ValueFile = filePath
+					content, err := ioutil.ReadFile(filePath)
+					if err != nil {
+						return lifecycleConfig, err
+					}
+					lifecycleConfig.Value = string(content)
 					continue
 				}
 			}

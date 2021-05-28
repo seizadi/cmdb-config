@@ -39,7 +39,7 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 		return err
 	}
 
-	//Create CloudProvider and Region to anchore deployment
+	//Create CloudProvider and Region to anchor deployment
 	cloud := pb.CloudProvider{Name: "AWS", Account: "141960", Provider: pb.Provider_AWS}
 	cRet, err := createCloudProvider(state.h, cloud)
 	if err != nil {
@@ -52,7 +52,7 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 		return err
 	}
 
-	err = state.visitLifecycle(nil, lifecycle)
+	err = state.visitLifecycle(&resource.Identifier{}, lifecycle)
 	if err != nil {
 		return err
 	}
@@ -60,43 +60,43 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 	return nil
 }
 
-func (s *LifecycleState) visitLifecycle(id *resource.Identifier, lifecycle LifecycleConfig) error {
-	var rootId *resource.Identifier
+func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle LifecycleConfig) error {
+	var parentId *resource.Identifier
 	var envFlag bool
 
 	if len(lifecycle.LifecycleConfigs) > 0 {
 		envFlag = false
-		root, err := getLifeCycle(lifecycle)
+		root, err := getLifeCycle(rootId, lifecycle)
 		if err != nil {
 			return err
 		}
 
-		l_ret, err := createLifecycle(s.h, root)
+		l, err := createLifecycle(s.h, root)
 		if err != nil {
 			return err
 		}
-		rootId = l_ret.Id
+		parentId = l.Id
 	} else {
 		envFlag = true
-		root, err := getEnvironment(id, lifecycle)
+		root, err := getEnvironment(rootId, lifecycle)
 		if err != nil {
 			return err
 		}
 
-		e_ret, err := createEnvironment(s.h, root)
+		e, err := createEnvironment(s.h, root)
 		if err != nil {
 			return err
 		}
-		rootId = e_ret.Id
+		parentId = e.Id
 	}
 
 	for _, a := range lifecycle.AppConfigs {
-		if (a.Chart != "dnd") && (a.Chart == "dev") {
-			app, err := s.findCreateApplication(a.Name)
-			if err != nil {
-				return err
-			}
+		app, err := s.findCreateApplication(a.Name)
+		if err != nil {
+			return err
+		}
 
+		if len(a.Chart) > 0 && a.Chart != "dnd" && a.Chart != "dev" {
 			chart, err := s.findCreateChart(app, a.Chart, false)
 			if err != nil {
 				return err
@@ -104,39 +104,39 @@ func (s *LifecycleState) visitLifecycle(id *resource.Identifier, lifecycle Lifec
 
 			var appVersion pb.AppVersion
 			if envFlag {
-				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: rootId}
+				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: parentId}
 			} else {
-				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: rootId}
+				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: parentId}
 			}
 			_, err = createAppVersion(s.h, appVersion)
 			if err != nil {
 				return err
 			}
+		}
 
-			var appConfig pb.AppConfig
-			if envFlag {
-				appConfig = pb.AppConfig{Name: a.Name, EnvironmentId: rootId, ApplicationId: app.Id}
-			} else {
-				appConfig = pb.AppConfig{Name: a.Name, LifecycleId: rootId, ApplicationId: app.Id}
-			}
-			if len(a.ValueFile) > 0 {
-				content, err := ioutil.ReadFile(a.ValueFile)
-				if err != nil {
-					return err
-				}
-				appConfig.ConfigYaml = string(content)
-			}
-
-			_, err = createAppConfig(s.h, appConfig)
+		var appConfig pb.AppConfig
+		if envFlag {
+			appConfig = pb.AppConfig{Name: a.Name, EnvironmentId: parentId, ApplicationId: app.Id}
+		} else {
+			appConfig = pb.AppConfig{Name: a.Name, LifecycleId: parentId, ApplicationId: app.Id}
+		}
+		if len(a.ValueFile) > 0 {
+			content, err := ioutil.ReadFile(a.ValueFile)
 			if err != nil {
 				return err
 			}
+			appConfig.ConfigYaml = string(content)
+		}
+
+		_, err = createAppConfig(s.h, appConfig)
+		if err != nil {
+			return err
 		}
 	}
 
 	if len(lifecycle.LifecycleConfigs) > 0 {
 		for _, l := range lifecycle.LifecycleConfigs {
-			err := s.visitLifecycle(rootId, l)
+			err := s.visitLifecycle(parentId, l)
 			if err != nil {
 				return err
 			}
@@ -144,7 +144,7 @@ func (s *LifecycleState) visitLifecycle(id *resource.Identifier, lifecycle Lifec
 
 	} else {
 		// Create ApplicationInstances
-		err := s.createEnvironmentAppInstances(rootId, lifecycle)
+		err := s.createEnvironmentAppInstances(parentId, lifecycle)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 	for _, file := range files {
 		filePath := lifecyclePath + "/" + file.Name()
 		if file.IsDir() {
-			return errors.New("Build path has unexpected directory structure.")
+			return errors.New("build path has unexpected directory structure")
 		} else {
 			ext := path.Ext(file.Name())
 			if ext == ".yaml" {
@@ -212,17 +212,11 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 	return nil
 }
 
-func getLifeCycle(lifecycleConfig LifecycleConfig) (pb.Lifecycle, error) {
+func getLifeCycle(lifecycleId *resource.Identifier, lifecycleConfig LifecycleConfig) (pb.Lifecycle, error) {
 	var l pb.Lifecycle
 	l.Name = lifecycleConfig.Name
-	if len(lifecycleConfig.ValueFile) > 0 {
-		content, err := ioutil.ReadFile(lifecycleConfig.ValueFile)
-		if err != nil {
-			return l, err
-		}
-		l.ConfigYaml = string(content)
-	}
-
+	l.LifecycleId = lifecycleId
+	l.ConfigYaml = lifecycleConfig.Value
 	return l, nil
 }
 
@@ -230,14 +224,7 @@ func getEnvironment(lifecycleId *resource.Identifier, lifecycleConfig LifecycleC
 	var e pb.Environment
 	e.Name = lifecycleConfig.Name
 	e.LifecycleId = lifecycleId
-	if len(lifecycleConfig.ValueFile) > 0 {
-		content, err := ioutil.ReadFile(lifecycleConfig.ValueFile)
-		if err != nil {
-			return e, err
-		}
-		e.ConfigYaml = string(content)
-	}
-
+	e.ConfigYaml = lifecycleConfig.Value
 	return e, nil
 }
 
