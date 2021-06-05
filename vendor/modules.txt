@@ -69,7 +69,7 @@ github.com/lyft/protoc-gen-validate/validate
 github.com/russross/blackfriday
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
-# github.com/seizadi/cmdb v0.0.30
+# github.com/seizadi/cmdb v0.0.33
 github.com/seizadi/cmdb/client
 github.com/seizadi/cmdb/pkg/pb
 # github.com/sirupsen/logrus v1.2.0
@@ -89,7 +89,7 @@ golang.org/x/net/trace
 # golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
+# golang.org/x/text v0.3.2
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -141,5 +141,5 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# gopkg.in/yaml.v2 v2.2.4
+# gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2

@@ -3871,16 +3871,6 @@ func (m *ChartVersion) Validate() error {
 
 	// no validation rules for Version
 
-	if v, ok := interface{}(m.GetChartStore()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ChartVersionValidationError{
-				field:  "ChartStore",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
 	if v, ok := interface{}(m.GetApplicationId()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ChartVersionValidationError{
@@ -8604,6 +8594,16 @@ func (m *ApplicationInstance) Validate() error {
 		if err := v.Validate(); err != nil {
 			return ApplicationInstanceValidationError{
 				field:  "ApplicationId",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetAppVersionId()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ApplicationInstanceValidationError{
+				field:  "AppVersionId",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -14120,3 +14120,305 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ListDeploymentsResponseValidationError{}
+
+// Validate checks the field values on ManifestCreateRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *ManifestCreateRequest) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetAppInstanceId()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ManifestCreateRequestValidationError{
+				field:  "AppInstanceId",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for LifecycleSkipValues
+
+	// no validation rules for EnvSkipValues
+
+	return nil
+}
+
+// ManifestCreateRequestValidationError is the validation error returned by
+// ManifestCreateRequest.Validate if the designated constraints aren't met.
+type ManifestCreateRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ManifestCreateRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ManifestCreateRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ManifestCreateRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ManifestCreateRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ManifestCreateRequestValidationError) ErrorName() string {
+	return "ManifestCreateRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ManifestCreateRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sManifestCreateRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ManifestCreateRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ManifestCreateRequestValidationError{}
+
+// Validate checks the field values on ManifestCreateResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *ManifestCreateResponse) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Artifact
+
+	return nil
+}
+
+// ManifestCreateResponseValidationError is the validation error returned by
+// ManifestCreateResponse.Validate if the designated constraints aren't met.
+type ManifestCreateResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ManifestCreateResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ManifestCreateResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ManifestCreateResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ManifestCreateResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ManifestCreateResponseValidationError) ErrorName() string {
+	return "ManifestCreateResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ManifestCreateResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sManifestCreateResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ManifestCreateResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ManifestCreateResponseValidationError{}
+
+// Validate checks the field values on ManifestConfigCreateRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *ManifestConfigCreateRequest) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetAppInstanceId()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ManifestConfigCreateRequestValidationError{
+				field:  "AppInstanceId",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for LifecycleSkipValues
+
+	// no validation rules for EnvSkipValues
+
+	return nil
+}
+
+// ManifestConfigCreateRequestValidationError is the validation error returned
+// by ManifestConfigCreateRequest.Validate if the designated constraints
+// aren't met.
+type ManifestConfigCreateRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ManifestConfigCreateRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ManifestConfigCreateRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ManifestConfigCreateRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ManifestConfigCreateRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ManifestConfigCreateRequestValidationError) ErrorName() string {
+	return "ManifestConfigCreateRequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ManifestConfigCreateRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sManifestConfigCreateRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ManifestConfigCreateRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ManifestConfigCreateRequestValidationError{}
+
+// Validate checks the field values on ManifestConfigCreateResponse with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *ManifestConfigCreateResponse) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Config
+
+	return nil
+}
+
+// ManifestConfigCreateResponseValidationError is the validation error returned
+// by ManifestConfigCreateResponse.Validate if the designated constraints
+// aren't met.
+type ManifestConfigCreateResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ManifestConfigCreateResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ManifestConfigCreateResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ManifestConfigCreateResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ManifestConfigCreateResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ManifestConfigCreateResponseValidationError) ErrorName() string {
+	return "ManifestConfigCreateResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ManifestConfigCreateResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sManifestConfigCreateResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ManifestConfigCreateResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ManifestConfigCreateResponseValidationError{}

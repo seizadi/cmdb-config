@@ -177,6 +177,10 @@ It has these top-level messages:
 	DeleteDeploymentResponse
 	ListDeploymentRequest
 	ListDeploymentsResponse
+	ManifestCreateRequest
+	ManifestCreateResponse
+	ManifestConfigCreateRequest
+	ManifestConfigCreateResponse
 */
 package pb
 
@@ -189,10 +193,8 @@ import errors1 "github.com/infobloxopen/protoc-gen-gorm/errors"
 import field_mask1 "google.golang.org/genproto/protobuf/field_mask"
 import gorm1 "github.com/jinzhu/gorm"
 import gorm2 "github.com/infobloxopen/atlas-app-toolkit/gorm"
-import postgres1 "github.com/jinzhu/gorm/dialects/postgres"
 import query1 "github.com/infobloxopen/atlas-app-toolkit/query"
 import resource1 "github.com/infobloxopen/atlas-app-toolkit/gorm/resource"
-import types1 "github.com/infobloxopen/protoc-gen-gorm/types"
 
 import math "math"
 import _ "github.com/golang/protobuf/ptypes/empty"
@@ -750,8 +752,7 @@ type LifecycleWithAfterToPB interface {
 
 type ChartVersionORM struct {
 	AccountID     string
-	ApplicationId *string          `gorm:"type:UUID"`
-	ChartStore    *postgres1.Jsonb `gorm:"type:jsonb"`
+	ApplicationId *string `gorm:"type:UUID"`
 	Description   string
 	Id            string `gorm:"type:UUID;primary_key"`
 	Name          string
@@ -783,9 +784,6 @@ func (m *ChartVersion) ToORM(ctx context.Context) (ChartVersionORM, error) {
 	to.Description = m.Description
 	to.Repo = m.Repo
 	to.Version = m.Version
-	if m.ChartStore != nil {
-		to.ChartStore = &postgres1.Jsonb{[]byte(m.ChartStore.Value)}
-	}
 	if m.ApplicationId != nil {
 		if v, err := resource1.Decode(&Application{}, m.ApplicationId); err != nil {
 			return to, err
@@ -824,9 +822,6 @@ func (m *ChartVersionORM) ToPB(ctx context.Context) (ChartVersion, error) {
 	to.Description = m.Description
 	to.Repo = m.Repo
 	to.Version = m.Version
-	if m.ChartStore != nil {
-		to.ChartStore = &types1.JSONValue{Value: string(m.ChartStore.RawMessage)}
-	}
 	if m.ApplicationId != nil {
 		if v, err := resource1.Encode(&Application{}, *m.ApplicationId); err != nil {
 			return to, err
@@ -1439,6 +1434,7 @@ type AppVersionWithAfterToPB interface {
 
 type ApplicationInstanceORM struct {
 	AccountID      string
+	AppVersionId   *string          `gorm:"type:UUID"`
 	ApplicationId  *string          `gorm:"type:UUID"`
 	ChartVersion   *ChartVersionORM `gorm:"foreignkey:ChartVersionId;association_foreignkey:Id;preload:false"`
 	ChartVersionId *string          `gorm:"type:UUID"`
@@ -1513,6 +1509,14 @@ func (m *ApplicationInstance) ToORM(ctx context.Context) (ApplicationInstanceORM
 			to.ApplicationId = &vv
 		}
 	}
+	if m.AppVersionId != nil {
+		if v, err := resource1.Decode(&AppVersion{}, m.AppVersionId); err != nil {
+			return to, err
+		} else if v != nil {
+			vv := v.(string)
+			to.AppVersionId = &vv
+		}
+	}
 	accountID, err := auth1.GetAccountID(ctx, nil)
 	if err != nil {
 		return to, err
@@ -1576,6 +1580,13 @@ func (m *ApplicationInstanceORM) ToPB(ctx context.Context) (ApplicationInstance,
 			return to, err
 		} else {
 			to.ApplicationId = v
+		}
+	}
+	if m.AppVersionId != nil {
+		if v, err := resource1.Encode(&AppVersion{}, *m.AppVersionId); err != nil {
+			return to, err
+		} else {
+			to.AppVersionId = v
 		}
 	}
 	if posthook, ok := interface{}(m).(ApplicationInstanceWithAfterToPB); ok {
@@ -4040,7 +4051,6 @@ func DefaultApplyFieldMaskChartVersion(ctx context.Context, patchee *ChartVersio
 		return nil, errors1.NilArgumentError
 	}
 	var err error
-	var updatedChartStore bool
 	for _, f := range updateMask.Paths {
 		if f == prefix+"Id" {
 			patchee.Id = patcher.Id
@@ -4060,11 +4070,6 @@ func DefaultApplyFieldMaskChartVersion(ctx context.Context, patchee *ChartVersio
 		}
 		if f == prefix+"Version" {
 			patchee.Version = patcher.Version
-			continue
-		}
-		if !updatedChartStore && strings.HasPrefix(f, prefix+"ChartStore") {
-			patchee.ChartStore = patcher.ChartStore
-			updatedChartStore = true
 			continue
 		}
 		if f == prefix+"ApplicationId" {
@@ -6069,6 +6074,10 @@ func DefaultApplyFieldMaskApplicationInstance(ctx context.Context, patchee *Appl
 		}
 		if f == prefix+"ApplicationId" {
 			patchee.ApplicationId = patcher.ApplicationId
+			continue
+		}
+		if f == prefix+"AppVersionId" {
+			patchee.AppVersionId = patcher.AppVersionId
 			continue
 		}
 	}
@@ -11400,4 +11409,19 @@ type DeploymentsDeploymentWithBeforeList interface {
 // DeploymentsDeploymentWithAfterList called before DefaultListDeployment in the default List handler
 type DeploymentsDeploymentWithAfterList interface {
 	AfterList(context.Context, *ListDeploymentsResponse, *gorm1.DB) error
+}
+type ManifestDefaultServer struct {
+	DB *gorm1.DB
+}
+
+// ManifestCreate ...
+func (m *ManifestDefaultServer) ManifestCreate(ctx context.Context, in *ManifestCreateRequest) (*ManifestCreateResponse, error) {
+	out := &ManifestCreateResponse{}
+	return out, nil
+}
+
+// ManifestConfigCreate ...
+func (m *ManifestDefaultServer) ManifestConfigCreate(ctx context.Context, in *ManifestConfigCreateRequest) (*ManifestConfigCreateResponse, error) {
+	out := &ManifestConfigCreateResponse{}
+	return out, nil
 }

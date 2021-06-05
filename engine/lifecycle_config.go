@@ -1,20 +1,21 @@
 package engine
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/infobloxopen/atlas-app-toolkit/rpc/resource"
-	"github.com/infobloxopen/protoc-gen-gorm/types"
-	"github.com/seizadi/cmdb/client"
-	"github.com/seizadi/cmdb/pkg/pb"
 	"io/ioutil"
 	"path"
-	"regexp"
+
+	"github.com/seizadi/cmdb/client"
+	"github.com/seizadi/cmdb/pkg/pb"
 )
 
 type LifecycleState struct {
 	h               *client.CmdbClient // The CMDB Client Handle
+	lifecycles	    []pb.Lifecycle
 	apps            []pb.Application
+	appInstances    []pb.ApplicationInstance // Only for Environments
+	appVersions     []pb.AppVersion
 	charts          []pb.ChartVersion
 	chartsRepo      string
 	lifecycleConfig LifecycleConfig
@@ -76,6 +77,7 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 			return err
 		}
 		parentId = l.Id
+		s.lifecycles = append(s.lifecycles, *l)
 	} else {
 		envFlag = true
 		root, err := getEnvironment(rootId, lifecycle)
@@ -96,8 +98,9 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 			return err
 		}
 
+		// TODO - We for now ignore 'dnd' and 'dev' chart definitions in lifecycles
 		if len(a.Chart) > 0 && a.Chart != "dnd" && a.Chart != "dev" {
-			chart, err := s.findCreateChart(app, a.Chart, false)
+			chart, err := s.findCreateChart(app, a.Chart)
 			if err != nil {
 				return err
 			}
@@ -108,10 +111,11 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 			} else {
 				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: parentId}
 			}
-			_, err = createAppVersion(s.h, appVersion)
+			appVersionRet, err := createAppVersion(s.h, appVersion)
 			if err != nil {
 				return err
 			}
+			s.appVersions = append(s.appVersions, *appVersionRet)
 		}
 
 		var appConfig pb.AppConfig
@@ -144,7 +148,7 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 
 	} else {
 		// Create ApplicationInstances
-		err := s.createEnvironmentAppInstances(parentId, lifecycle)
+		err := s.createEnvironmentAppInstances(rootId, parentId, lifecycle)
 		if err != nil {
 			return err
 		}
@@ -153,7 +157,7 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 	return nil
 }
 
-func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifier, lifecycleConfig LifecycleConfig) error {
+func (s *LifecycleState) createEnvironmentAppInstances(lifecycleId *resource.Identifier, envId *resource.Identifier, lifecycleConfig LifecycleConfig) error {
 	var appConfigs []AppConfig
 	lifecyclePath := lifecycleConfig.BuildPath
 	files, err := ioutil.ReadDir(lifecyclePath)
@@ -181,14 +185,17 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 		}
 	}
 
+	// We create the instances
+	appVerMap := s.findAppVersionMap(lifecycleId)
 	for _, a := range appConfigs {
+		// TODO - This does not handle case where the AppVersion drives the AppInstance creation
 		if len(a.ChartFile) > 0 {
 			app, err := s.findCreateApplication(a.Name)
 			if err != nil {
 				return err
 			}
 
-			chart, err := s.findCreateChart(app, a.Chart, false)
+			chart, err := s.findCreateChart(app, a.Chart)
 			if err != nil {
 				return err
 			}
@@ -197,19 +204,121 @@ func (s *LifecycleState) createEnvironmentAppInstances(rootId *resource.Identifi
 				Name:           lifecycleConfig.Name + "/" + app.Name,
 				ChartVersionId: chart.Id,
 				ApplicationId:  app.Id,
-				EnvironmentId:  rootId,
-				ConfigYaml: a.Value,
-				Enable: a.Enable,
+				EnvironmentId:  envId,
+				ConfigYaml:     a.Value,
+				Enable:         a.Enable,
 			}
 
 			_, err = createApplicationInstance(s.h, appInstance)
 			if err != nil {
 				return err
 			}
+		} else {
+			appConfig := findAppLifecycleConfig(a.Name, lifecycleConfig)
+			if len(a.ValueFile) > 0 || len(appConfig.ValueFile) > 0 {
+				appVer := appVerMap[a.Name]
+				if appVer.ChartVersionId != nil {
+					app, err := s.findCreateApplication(a.Name)
+					if err != nil {
+						return err
+					}
+
+					appInstance := pb.ApplicationInstance{
+						Name:           lifecycleConfig.Name + "/" + app.Name,
+						ChartVersionId: appVer.ChartVersionId,
+						ApplicationId:  app.Id,
+						EnvironmentId:  envId,
+						ConfigYaml:     a.Value,
+						Enable:         true,
+					}
+
+					_, err = createApplicationInstance(s.h, appInstance)
+					if err != nil {
+						return err
+					}
+				}
+			}
 		}
 	}
 
 	return nil
+}
+
+func findAppLifecycleConfig(name string, config LifecycleConfig)*AppConfig{
+	for i, appConfig := range config.AppConfigs {
+		if appConfig.Name == name {
+			return &config.AppConfigs[i]
+		}
+	}
+	return nil
+}
+
+func (s *LifecycleState) findCreateChart(app pb.Application, version string) (pb.ChartVersion, error) {
+
+	repo := s.chartsRepo + "/" + app.Name
+	chartVersion := pb.ChartVersion{
+		Name: repo + ":" + version,
+		Repo: repo,
+		Version: version,
+		ApplicationId: app.Id,
+	}
+
+	for _, c := range s.charts {
+		if c.Name == chartVersion.Name {
+			return c, nil
+		}
+	}
+
+	retChart, err := createChartVersion(s.h, chartVersion)
+	if err != nil {
+		return chartVersion, err
+	}
+
+	s.charts = append(s.charts, *retChart)
+
+	return *retChart, nil
+}
+
+func (s *LifecycleState) findLifecycle(lifecycleId *resource.Identifier) *pb.Lifecycle {
+	for i, lifecycle := range s.lifecycles {
+		if lifecycleId.ResourceId == lifecycle.Id.ResourceId {
+			return &s.lifecycles[i]
+		}
+	}
+
+	return nil
+}
+
+func (s *LifecycleState) findLifecycleAppVersion(appId *resource.Identifier, lifecycleId *resource.Identifier) *pb.AppVersion {
+	for i, appVersion := range s.appVersions {
+		if appVersion.ApplicationId.ResourceId == appId.ResourceId &&
+			appVersion.LifecycleId != nil &&
+			appVersion.LifecycleId.ResourceId == lifecycleId.ResourceId {
+			return &s.appVersions[i]
+		}
+	}
+	return nil
+}
+
+func (s *LifecycleState) findAppVersion(id *resource.Identifier, appId *resource.Identifier) pb.AppVersion{
+	for id != nil {
+		appVersion := s.findLifecycleAppVersion(appId, id)
+		if appVersion != nil &&
+			appVersion.ChartVersionId != nil {
+			return *appVersion
+		}
+		id = s.findLifecycle(id).LifecycleId
+	}
+	return pb.AppVersion{}
+}
+
+func (s *LifecycleState) findAppVersionMap(lifecycleId *resource.Identifier) map[string]pb.AppVersion {
+	// Find all AppVersions that are desired for each Application
+	var appVersionMap = make(map[string]pb.AppVersion)
+	for _,app := range s.apps {
+		appVersionMap[app.Name] = s.findAppVersion(lifecycleId, app.Id)
+	}
+	return appVersionMap
 }
 
 func getLifeCycle(lifecycleId *resource.Identifier, lifecycleConfig LifecycleConfig) (pb.Lifecycle, error) {
@@ -245,6 +354,22 @@ func (s *LifecycleState) findCreateApplication(name string) (pb.Application, err
 	return *retApp, nil
 }
 
+func (s *LifecycleState) findCreateAppInstances(appInstance pb.ApplicationInstance) (pb.ApplicationInstance, error) {
+	for _, app := range s.appInstances {
+		if app.Name == appInstance.Name {
+			return app, nil
+		}
+	}
+
+	retAppInstance, err := createApplicationInstance(s.h, appInstance)
+	if err != nil {
+		return appInstance, err
+	}
+
+	s.appInstances = append(s.appInstances, *retAppInstance)
+	return *retAppInstance, nil
+}
+
 type BuildArtifacts struct {
 	Artifacts []BuildChart
 }
@@ -255,56 +380,3 @@ type BuildChart struct {
 	Type      string
 }
 
-func (s *LifecycleState) findCreateChart(app pb.Application, chart string, envFlag bool) (pb.ChartVersion, error) {
-	var appChart string
-	var version string
-
-	appChart = s.chartsRepo + "/" + app.Name
-	chartVersion := pb.ChartVersion{Name: appChart + ":" + version, Repo: appChart, ApplicationId: app.Id}
-	chartStore :=  types.JSONValue { Value: "{}" }
-
-	if envFlag == false {
-		version = chart
-	} else {
-		// TODO - Do we need the code in else{} clause?
-		var build BuildArtifacts
-		err := json.Unmarshal([]byte(chart), &build)
-		if err != nil {
-			return pb.ChartVersion{}, err
-		}
-
-		base := path.Base(build.Artifacts[0].Reference)
-		reg := regexp.MustCompile(".tgz")
-		split := reg.Split(base, -1)
-		version = split[0]
-		chartStore =  types.JSONValue { Value: chart }
-	}
-	
-	chartVersion.Version = version
-	chartVersion.ChartStore = &chartStore
-
-	for i, c := range s.charts {
-		if c.Repo == appChart && c.Version == version {
-			if envFlag == false {
-				return c, nil
-			} else {
-				c.ChartStore.Value = chartVersion.ChartStore.Value
-				res, err := updateChartVersion(s.h, c)
-				if err != nil {
-					return c, err
-				}
-				s.charts[i] = *res
-				return *res, nil
-			}
-		}
-	}
-
-	retChart, err := createChartVersion(s.h, chartVersion)
-	if err != nil {
-		return chartVersion, err
-	}
-	
-	s.charts = append(s.charts, *retChart)
-	
-	return *retChart, nil
-}

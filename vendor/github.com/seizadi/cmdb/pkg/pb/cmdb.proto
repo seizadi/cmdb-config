@@ -598,11 +598,8 @@ message ChartVersion {
   // The version of the ChartVersion
   string version = 5;
 
-  // The Event job details
-  gorm.types.JSONValue  chart_store = 6;
-
   // Reference to Application
-  atlas.rpc.Identifier application_id = 7 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
+  atlas.rpc.Identifier application_id = 6 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
 }
 
 message CreateChartVersionRequest {
@@ -1250,6 +1247,10 @@ message ApplicationInstance {
 
   // Reference to the Application
   atlas.rpc.Identifier application_id = 10 [(gorm.field) = {reference_of: "Application", tag: {type: "UUID"}}];
+
+  // Reference to the AppVersion
+  atlas.rpc.Identifier app_version_id = 11 [(gorm.field) = {reference_of: "AppVersion", tag: {type: "UUID"}}];
+
 }
 
 message CreateApplicationInstanceRequest {
@@ -1954,4 +1955,62 @@ service Deployments {
             get: "/deployments"
         };
   }
+}
+
+// --------------------------------------------------------------------------------------------
+// Manifest represents a resolved chart or other elements that are created for deployment
+// --------------------------------------------------------------------------------------------
+service Manifest {
+  option (gorm.server) = {
+      autogen: true,
+      txn_middleware: false,
+    };
+
+  rpc ManifestCreate (ManifestCreateRequest) returns (ManifestCreateResponse) {
+    option (google.api.http) = {
+      post: "/manifest"
+      body: "*"
+    };
+  }
+
+  rpc ManifestConfigCreate (ManifestConfigCreateRequest) returns (ManifestConfigCreateResponse) {
+    option (google.api.http) = {
+      post: "/manifest/config"
+      body: "*"
+    };
+  }
+}
+
+message ManifestCreateRequest {
+  // TODO - We might want to add a type filed when we haave different type of artifacts
+
+  // Application Instance Id for which you want the artifact
+  atlas.rpc.Identifier app_instance_id = 1;
+
+  // Optional if you want to skip Lifecycle Values
+  bool lifecycle_skip_values = 2;
+
+  // Optional if you want to skip environment Values
+  bool env_skip_values = 3;
+
+}
+
+message ManifestCreateResponse {
+  string artifact = 1;
+}
+
+message ManifestConfigCreateRequest {
+  // Application Instance Id for which you want the artifact
+  atlas.rpc.Identifier app_instance_id = 1;
+
+  // Optional if you want to skip Lifecycle Values
+  bool lifecycle_skip_values = 2;
+
+  // Optional if you want to skip environment Values
+  bool env_skip_values = 3;
+
+}
+
+message ManifestConfigCreateResponse {
+  string config = 1;
 }
