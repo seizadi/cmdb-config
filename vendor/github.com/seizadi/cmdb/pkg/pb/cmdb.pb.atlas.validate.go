@@ -5625,21 +5625,6 @@ func validate_Object_Environment(ctx context.Context, r json.RawMessage, path st
 					return err
 				}
 			}
-		case "app_version":
-			if v[k] == nil {
-				continue
-			}
-			var vArr []json.RawMessage
-			vArrPath := runtime1.JoinPath(path, k)
-			if err = json.Unmarshal(v[k], &vArr); err != nil {
-				return fmt.Errorf("invalid value for %q: expected array.", vArrPath)
-			}
-			for i, vv := range vArr {
-				vvPath := fmt.Sprintf("%s.[%d]", vArrPath, i)
-				if err = validate_Object_AppVersion(ctx, vv, vvPath); err != nil {
-					return err
-				}
-			}
 		case "lifecycle_id":
 			if v[k] == nil {
 				continue
@@ -7223,21 +7208,6 @@ func validate_Object_AppVersion(ctx context.Context, r json.RawMessage, path str
 				return err
 			}
 		case "lifecycle_id":
-			if v[k] == nil {
-				continue
-			}
-			vv := v[k]
-			vvPath := runtime1.JoinPath(path, k)
-			validator, ok := interface{}(&resource.Identifier{}).(interface {
-				AtlasValidateJSON(context.Context, json.RawMessage, string) error
-			})
-			if !ok {
-				continue
-			}
-			if err = validator.AtlasValidateJSON(ctx, vv, vvPath); err != nil {
-				return err
-			}
-		case "environment_id":
 			if v[k] == nil {
 				continue
 			}

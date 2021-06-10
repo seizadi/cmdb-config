@@ -5752,21 +5752,6 @@ func (m *Environment) Validate() error {
 
 	}
 
-	for idx, item := range m.GetAppVersion() {
-		_, _ = idx, item
-
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return EnvironmentValidationError{
-					field:  fmt.Sprintf("AppVersion[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
 	if v, ok := interface{}(m.GetLifecycleId()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return EnvironmentValidationError{
@@ -7626,16 +7611,6 @@ func (m *AppVersion) Validate() error {
 		if err := v.Validate(); err != nil {
 			return AppVersionValidationError{
 				field:  "LifecycleId",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	if v, ok := interface{}(m.GetEnvironmentId()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AppVersionValidationError{
-				field:  "EnvironmentId",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

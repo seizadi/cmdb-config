@@ -53,7 +53,7 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 		return err
 	}
 
-	err = state.visitLifecycle(&resource.Identifier{}, lifecycle)
+	err = state.visitLifecycle(&resource.Identifier{}, lifecycle, []AppConfig{})
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func createCmdbLifecycle(host string, apiKey string, lifecycle LifecycleConfig, 
 	return nil
 }
 
-func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle LifecycleConfig) error {
+func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle LifecycleConfig, parentAppConfigs []AppConfig) error {
 	var parentId *resource.Identifier
 	var envFlag bool
 
@@ -105,17 +105,14 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 				return err
 			}
 
-			var appVersion pb.AppVersion
-			if envFlag {
-				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, EnvironmentId: parentId}
-			} else {
-				appVersion = pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: parentId}
+			if !envFlag {
+				appVersion := pb.AppVersion{Name: app.Name, ChartVersionId: chart.Id, ApplicationId: app.Id, LifecycleId: parentId}
+				appVersionRet, err := createAppVersion(s.h, appVersion)
+				if err != nil {
+					return err
+				}
+				s.appVersions = append(s.appVersions, *appVersionRet)
 			}
-			appVersionRet, err := createAppVersion(s.h, appVersion)
-			if err != nil {
-				return err
-			}
-			s.appVersions = append(s.appVersions, *appVersionRet)
 		}
 
 		var appConfig pb.AppConfig
@@ -136,11 +133,14 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 		if err != nil {
 			return err
 		}
+		if lifecycle.Name == "prd-1" {
+			err = nil
+		}
 	}
 
 	if len(lifecycle.LifecycleConfigs) > 0 {
 		for _, l := range lifecycle.LifecycleConfigs {
-			err := s.visitLifecycle(parentId, l)
+			err := s.visitLifecycle(parentId, l, lifecycle.AppConfigs)
 			if err != nil {
 				return err
 			}
@@ -148,7 +148,7 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 
 	} else {
 		// Create ApplicationInstances
-		err := s.createEnvironmentAppInstances(rootId, parentId, lifecycle)
+		err := s.createEnvironmentAppInstances(rootId, parentId, lifecycle, parentAppConfigs)
 		if err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (s *LifecycleState) visitLifecycle(rootId *resource.Identifier, lifecycle L
 	return nil
 }
 
-func (s *LifecycleState) createEnvironmentAppInstances(lifecycleId *resource.Identifier, envId *resource.Identifier, lifecycleConfig LifecycleConfig) error {
+func (s *LifecycleState) createEnvironmentAppInstances(lifecycleId *resource.Identifier, envId *resource.Identifier, lifecycleConfig LifecycleConfig, parentAppConfigs []AppConfig) error {
 	var appConfigs []AppConfig
 	lifecyclePath := lifecycleConfig.BuildPath
 	files, err := ioutil.ReadDir(lifecyclePath)
@@ -213,12 +213,19 @@ func (s *LifecycleState) createEnvironmentAppInstances(lifecycleId *resource.Ide
 			if err != nil {
 				return err
 			}
-		} else {
-			appConfig := findAppLifecycleConfig(a.Name, lifecycleConfig)
+		}
+	}
+
+	for _, appConfig := range parentAppConfigs {
+		if true {
+			a := findAppInAppConfigs(appConfig.Name, appConfigs)
+			if a.Name == "identity" {
+				err = nil
+			}
 			if len(a.ValueFile) > 0 || len(appConfig.ValueFile) > 0 {
-				appVer := appVerMap[a.Name]
+				appVer := appVerMap[appConfig.Name]
 				if appVer.ChartVersionId != nil {
-					app, err := s.findCreateApplication(a.Name)
+					app, err := s.findCreateApplication(appConfig.Name)
 					if err != nil {
 						return err
 					}
@@ -244,13 +251,13 @@ func (s *LifecycleState) createEnvironmentAppInstances(lifecycleId *resource.Ide
 	return nil
 }
 
-func findAppLifecycleConfig(name string, config LifecycleConfig)*AppConfig{
-	for i, appConfig := range config.AppConfigs {
+func findAppInAppConfigs(name string, configs []AppConfig)AppConfig{
+	for i, appConfig := range configs {
 		if appConfig.Name == name {
-			return &config.AppConfigs[i]
+			return configs[i]
 		}
 	}
-	return nil
+	return AppConfig{}
 }
 
 func (s *LifecycleState) findCreateChart(app pb.Application, version string) (pb.ChartVersion, error) {
